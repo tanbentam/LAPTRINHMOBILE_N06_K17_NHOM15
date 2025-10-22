@@ -16,12 +16,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Crypto App',
+      title: 'my_application',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.amber),
         useMaterial3: true,
       ),
-      home: const LoginPage(), // ← Mở đầu bằng trang đăng nhập
+      home: const LoginPage(),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-
+import 'assets_page.dart';
+import '../settingss/settings_page.dart';
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -8,7 +9,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>(); // 🟢 Thêm key
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _searchController = TextEditingController();
   String searchQuery = '';
 
@@ -25,26 +26,27 @@ class _HomePageState extends State<HomePage> {
     // Lọc danh sách theo từ khóa
     final filteredCoins = coins
         .where((coin) =>
-        coin['name'].toString().toLowerCase().contains(searchQuery.toLowerCase()))
+        coin['name']
+            .toString()
+            .toLowerCase()
+            .contains(searchQuery.toLowerCase()))
         .toList();
 
     return Scaffold(
-      key: _scaffoldKey, // 🟢 gắn key cho Scaffold
+      key: _scaffoldKey,
       backgroundColor: Colors.white,
 
-      // Drawer menu
+      // 🟢 Drawer menu đã chỉnh sửa
       drawer: Drawer(
         backgroundColor: Colors.white,
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            DrawerHeader(
-              decoration: const BoxDecoration(
-                color: Colors.black,
-              ),
+            const DrawerHeader(
+              decoration: BoxDecoration(color: Colors.black),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   CircleAvatar(
                     radius: 28,
                     backgroundImage: AssetImage('assets/profile.png'),
@@ -68,12 +70,16 @@ class _HomePageState extends State<HomePage> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.account_balance_wallet, color: Colors.black),
+              leading:
+              const Icon(Icons.account_balance_wallet, color: Colors.black),
               title: const Text('Ví tiền'),
               onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Mở ví tiền')),
+                Navigator.pop(context); // 🔹 Đóng Drawer trước
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) =>
+                      const AssetsPage()), // 🔹 Mở trang AssetsPage
                 );
               },
             ),
@@ -93,14 +99,16 @@ class _HomePageState extends State<HomePage> {
               title: const Text('Cài đặt'),
               onTap: () {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Mở cài đặt')),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsPage()),
                 );
               },
             ),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text('Đăng xuất', style: TextStyle(color: Colors.red)),
+              title: const Text('Đăng xuất',
+                  style: TextStyle(color: Colors.red)),
               onTap: () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -112,6 +120,7 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
 
+      // 🧩 Phần nội dung chính
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -125,7 +134,7 @@ class _HomePageState extends State<HomePage> {
                     IconButton(
                       icon: const Icon(Icons.menu, color: Colors.black),
                       onPressed: () {
-                        _scaffoldKey.currentState?.openDrawer(); // 🟢 Mở Drawer qua key
+                        _scaffoldKey.currentState?.openDrawer();
                       },
                     ),
                     const SizedBox(width: 10),
@@ -148,7 +157,8 @@ class _HomePageState extends State<HomePage> {
                             border: InputBorder.none,
                             hintText: 'Sàn giao dịch / Ví...',
                             hintStyle: TextStyle(color: Colors.grey),
-                            prefixIcon: Icon(Icons.search, color: Colors.grey),
+                            prefixIcon:
+                            Icon(Icons.search, color: Colors.grey),
                           ),
                         ),
                       ),
@@ -158,13 +168,15 @@ class _HomePageState extends State<HomePage> {
                       icon: const Icon(Icons.headphones, color: Colors.black),
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Trò chuyện với hỗ trợ')),
+                          const SnackBar(
+                              content: Text('Trò chuyện với hỗ trợ')),
                         );
                       },
                     ),
                     const SizedBox(width: 10),
                     IconButton(
-                      icon: const Icon(Icons.notifications_none, color: Colors.black),
+                      icon: const Icon(Icons.notifications_none,
+                          color: Colors.black),
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Xem thông báo')),
@@ -270,14 +282,16 @@ class _HomePageState extends State<HomePage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: const [
                             Text(
-                              'Crypto Raju X • 19 phút trước',
-                              style: TextStyle(color: Colors.grey, fontSize: 12),
+                              ' Raju X • 19 phút trước',
+                              style: TextStyle(
+                                  color: Colors.grey, fontSize: 12),
                             ),
                             SizedBox(height: 4),
                             Text(
                               'Mở khóa Lợi suất Tổ chức với BounceBit CeDeFi: '
                                   'Hệ sinh thái, Cơ sở hạ tầng & Chiến lược',
-                              style: TextStyle(color: Colors.black, fontSize: 13),
+                              style: TextStyle(
+                                  color: Colors.black, fontSize: 13),
                             ),
                           ],
                         ),
@@ -294,23 +308,27 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Widget coin row
-  Widget _buildCoinRow(String name, String price, String change, bool isUp) {
+  Widget _buildCoinRow(
+      String name, String price, String change, bool isUp) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
           Text(name,
-              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w500)),
+              style: const TextStyle(
+                  color: Colors.black, fontWeight: FontWeight.w500)),
           const Spacer(),
           Text(price,
-              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+              style: const TextStyle(
+                  color: Colors.black, fontWeight: FontWeight.bold)),
           const SizedBox(width: 10),
           Container(
             decoration: BoxDecoration(
               color: isUp ? Colors.green[100] : Colors.red[100],
               borderRadius: BorderRadius.circular(5),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding:
+            const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Text(
               change,
               style: TextStyle(
