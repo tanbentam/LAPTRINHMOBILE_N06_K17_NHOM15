@@ -6,23 +6,23 @@ class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   // Create user document with initial balance
-  Future<void> createUserDocument(String uid, String email) async {
+  Future<void> createUserDocument(String uid, String email, {String? password}) async {
     try {
-      final userDoc = _db.collection('users').doc(uid);
-      final docSnapshot = await userDoc.get();
+      final userDoc = _db.collection('users').doc(uid); // Sửa _firestore thành _db
+      final now = DateTime.now();
       
-      if (!docSnapshot.exists) {
-        final newUser = UserModel(
-          uid: uid,
-          email: email,
-          balance: 10000.0, // Initial balance: $10,000
-          holdings: {},
-          createdAt: DateTime.now(),
-        );
-        await userDoc.set(newUser.toJson());
-      }
+      final userData = UserModel(
+        uid: uid,
+        email: email,
+        password: password, // Lưu password vào UserModel
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      await userDoc.set(userData.toMap()); // toMap() sẽ bao gồm password
+      print('User document created successfully for $email with password field');
     } catch (e) {
-      print('Create user document error: $e');
+      print('Error creating user document: $e');
       rethrow;
     }
   }
@@ -32,7 +32,7 @@ class FirestoreService {
     try {
       DocumentSnapshot doc = await _db.collection('users').doc(uid).get();
       if (doc.exists) {
-        return UserModel.fromJson(doc.data() as Map<String, dynamic>);
+        return UserModel.fromMap(doc.data() as Map<String, dynamic>); // Sửa fromJson thành fromMap
       }
       return null;
     } catch (e) {
@@ -45,7 +45,7 @@ class FirestoreService {
   Stream<UserModel?> streamUserData(String uid) {
     return _db.collection('users').doc(uid).snapshots().map((doc) {
       if (doc.exists) {
-        return UserModel.fromJson(doc.data() as Map<String, dynamic>);
+        return UserModel.fromMap(doc.data() as Map<String, dynamic>); // Sửa fromJson thành fromMap
       }
       return null;
     });

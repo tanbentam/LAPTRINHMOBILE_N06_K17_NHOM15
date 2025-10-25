@@ -15,25 +15,27 @@ class AuthService {
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   // Sign up with email and password
-  Future<User?> signUpWithEmailPassword(String email, String password) async {
-    try {
-      UserCredential result = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      User? user = result.user;
-      
-      // Create user document in Firestore with initial balance
-      if (user != null) {
-        await _firestoreService.createUserDocument(user.uid, email);
-      }
-      
-      return user;
-    } catch (e) {
-      print('Sign up error: $e');
-      rethrow;
-    }
+Future<UserCredential> signUpWithEmailPassword(String email, String password) async {
+  try {
+    UserCredential result = await _auth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+    
+    // Tạo user document và truyền password để lưu vào Firebase
+    await _firestoreService.createUserDocument(
+      result.user!.uid, 
+      email,
+      password: password, // Truyền password để lưu vào Firestore
+    );
+    
+    print('User created and password saved to Firestore');
+    return result;
+  } catch (e) {
+    print('Error in signUpWithEmailPassword: $e');
+    rethrow;
   }
+}
 
   // Sign in with email and password
   Future<User?> signInWithEmailPassword(String email, String password) async {
