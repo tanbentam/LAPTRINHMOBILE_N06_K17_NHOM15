@@ -71,6 +71,19 @@ class FirestoreService {
     }
   }
 
+  // Update favorite coins
+  Future<void> updateFavorites(String uid, List<String> favoriteCoins) async {
+    try {
+      await _db.collection('users').doc(uid).update({
+        'favoriteCoins': favoriteCoins,
+        'updatedAt': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      print('Update favorites error: $e');
+      rethrow;
+    }
+  }
+
   // Buy coin
   Future<void> buyCoin({
     required String uid,

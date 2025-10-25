@@ -56,9 +56,8 @@ class _MarketPageState extends State<MarketPage> {
       // Load user favorites
       if (authService.currentUserId != null) {
         currentUser = await firestoreService.getUserData(authService.currentUserId!);
-        // Lấy favorites từ user preferences (có thể thêm field này vào UserModel)
-        // Tạm thời dùng holdings làm favorites
-        favoriteCoins = currentUser?.holdings.keys.toSet() ?? {};
+        // Get favorites from user model
+        favoriteCoins = currentUser?.favoriteCoins.toSet() ?? {};
       }
       
       if (mounted) {
@@ -109,6 +108,16 @@ class _MarketPageState extends State<MarketPage> {
 
   Future<void> _toggleFavorite(String coinId) async {
     try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final firestoreService = Provider.of<FirestoreService>(context, listen: false);
+      
+      if (authService.currentUserId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Vui lòng đăng nhập để sử dụng tính năng này')),
+        );
+        return;
+      }
+      
       setState(() {
         if (favoriteCoins.contains(coinId)) {
           favoriteCoins.remove(coinId);
@@ -117,19 +126,28 @@ class _MarketPageState extends State<MarketPage> {
         }
       });
       
-      // Có thể lưu favorites vào Firestore sau này
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(favoriteCoins.contains(coinId) 
-              ? 'Đã thêm vào yêu thích' 
-              : 'Đã xóa khỏi yêu thích'),
-          duration: const Duration(seconds: 1),
-        ),
+      // Save to Firestore
+      await firestoreService.updateFavorites(
+        authService.currentUserId!,
+        favoriteCoins.toList(),
       );
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(favoriteCoins.contains(coinId) 
+                ? 'Đã thêm vào yêu thích' 
+                : 'Đã xóa khỏi yêu thích'),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: $e')),
+        );
+      }
     }
   }
 
