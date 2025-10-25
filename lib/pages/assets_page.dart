@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/coingecko_service.dart';
 import 'history_page.dart';
+import 'simulate_balance_page.dart';
 
 class AssetsPage extends StatefulWidget {
   const AssetsPage({super.key});
@@ -79,6 +80,16 @@ class _AssetsPageState extends State<AssetsPage> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.tune, color: Colors.orange),
+            tooltip: 'Giả lập số dư',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SimulateBalancePage()),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.history, color: Colors.black54),
             onPressed: () {
               Navigator.push(
@@ -135,6 +146,56 @@ class _AssetsPageState extends State<AssetsPage> {
                   ),
                   const SizedBox(height: 24),
 
+                  // Quick actions for demo
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.amber[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.amber.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.settings_applications, color: Colors.amber[700]),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Demo Controls',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const SimulateBalancePage(),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.tune, size: 16),
+                                label: const Text('Điều chỉnh số dư'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFFFD400),
+                                  foregroundColor: Colors.black,
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  
                   const Text(
                     "Tài sản đang nắm giữ",
                     style: TextStyle(

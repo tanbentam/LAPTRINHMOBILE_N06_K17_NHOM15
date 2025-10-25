@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import 'device_management_page.dart';
 import '../pages/debug_page.dart';
+import '../pages/simulate_balance_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -24,6 +25,18 @@ class SettingsPage extends StatelessWidget {
             subtitle: Text(authService.currentUser?.email ?? ''),
           ),
           const Divider(),
+          ListTile(
+            leading: const Icon(Icons.account_balance_wallet),
+            title: const Text('Giả lập số dư'),
+            subtitle: const Text('Điều chỉnh số tiền và tài sản cho demo'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SimulateBalancePage()),
+              );
+            },
+          ),
           ListTile(
             leading: const Icon(Icons.devices),
             title: const Text('Quản lý thiết bị'),
