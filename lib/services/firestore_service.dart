@@ -91,6 +91,8 @@ class FirestoreService {
     required String coinSymbol,
     required double amount,
     required double price,
+    double? stopLoss,
+    double? takeProfit,
   }) async {
     try {
       final userDoc = _db.collection('users').doc(uid);
@@ -123,6 +125,8 @@ class FirestoreService {
         amount: amount,
         price: price,
         total: total,
+        stopLoss: stopLoss,
+        takeProfit: takeProfit,
       );
     } catch (e) {
       print('Buy coin error: $e');
@@ -190,6 +194,8 @@ class FirestoreService {
     required double amount,
     required double price,
     required double total,
+    double? stopLoss,
+    double? takeProfit,
   }) async {
     try {
       final transactionDoc = _db.collection('transactions').doc();
@@ -203,6 +209,9 @@ class FirestoreService {
         price: price,
         total: total,
         timestamp: DateTime.now(),
+        stopLoss: stopLoss,
+        takeProfit: takeProfit,
+        autoSellEnabled: stopLoss != null || takeProfit != null,
       );
       await transactionDoc.set(transaction.toJson());
     } catch (e) {

@@ -8,6 +8,10 @@ class Transaction {
   final double price;
   final double total;
   final DateTime timestamp;
+  final double? stopLoss;    // Giá cắt lỗ (optional)
+  final double? takeProfit;  // Giá chốt lời (optional)
+  final bool autoSellEnabled;
+  final String? notes;       // Ghi chú
 
   Transaction({
     required this.id,
@@ -19,6 +23,10 @@ class Transaction {
     required this.price,
     required this.total,
     required this.timestamp,
+    this.stopLoss,
+    this.takeProfit,
+    this.autoSellEnabled = false,
+    this.notes,
   });
 
   factory Transaction.fromJson(Map<String, dynamic> json) {
@@ -32,6 +40,10 @@ class Transaction {
       price: (json['price'] ?? 0).toDouble(),
       total: (json['total'] ?? 0).toDouble(),
       timestamp: DateTime.parse(json['timestamp'] ?? DateTime.now().toIso8601String()),
+      stopLoss: json['stopLoss'] != null ? (json['stopLoss'] as num).toDouble() : null,
+      takeProfit: json['takeProfit'] != null ? (json['takeProfit'] as num).toDouble() : null,
+      autoSellEnabled: json['autoSellEnabled'] ?? false,
+      notes: json['notes'],
     );
   }
 
@@ -46,6 +58,10 @@ class Transaction {
       'price': price,
       'total': total,
       'timestamp': timestamp.toIso8601String(),
+      'stopLoss': stopLoss,
+      'takeProfit': takeProfit,
+      'autoSellEnabled': autoSellEnabled,
+      'notes': notes,
     };
   }
 }

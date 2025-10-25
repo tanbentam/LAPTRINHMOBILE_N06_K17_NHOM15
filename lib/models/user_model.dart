@@ -6,6 +6,7 @@ class UserModel {
   final double balance;
   final Map<String, double> holdings;
   final List<String> favoriteCoins;
+  final List<String> watchlist; // Danh sách theo dõi
   final String? password; // Thêm trường password
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -18,6 +19,7 @@ class UserModel {
     this.balance = 1000.0,
     this.holdings = const {},
     this.favoriteCoins = const [],
+    this.watchlist = const [],
     this.password, // Thêm parameter password
     required this.createdAt,
     required this.updatedAt,
@@ -32,6 +34,7 @@ class UserModel {
       balance: (map['balance'] ?? 1000.0).toDouble(),
       holdings: Map<String, double>.from(map['holdings'] ?? {}),
       favoriteCoins: List<String>.from(map['favoriteCoins'] ?? []),
+      watchlist: List<String>.from(map['watchlist'] ?? []),
       password: map['password'], // Đọc password từ map
       createdAt: DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
       updatedAt: DateTime.parse(map['updatedAt'] ?? DateTime.now().toIso8601String()),
@@ -47,6 +50,7 @@ class UserModel {
       'balance': balance,
       'holdings': holdings,
       'favoriteCoins': favoriteCoins,
+      'watchlist': watchlist,
       'password': password, // Thêm password vào map để lưu Firebase
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
@@ -61,6 +65,7 @@ class UserModel {
     double? balance,
     Map<String, double>? holdings,
     List<String>? favoriteCoins,
+    List<String>? watchlist,
     String? password,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -73,6 +78,7 @@ class UserModel {
       balance: balance ?? this.balance,
       holdings: holdings ?? this.holdings,
       favoriteCoins: favoriteCoins ?? this.favoriteCoins,
+      watchlist: watchlist ?? this.watchlist,
       password: password ?? this.password,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

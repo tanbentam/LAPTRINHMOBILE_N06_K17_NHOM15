@@ -9,6 +9,9 @@ import 'pages/assets_page.dart';
 import 'services/auth_service.dart';
 import 'services/firestore_service.dart';
 import 'services/coingecko_service.dart';
+import 'services/notification_service.dart';
+import 'services/portfolio_service.dart';
+import 'services/alert_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +23,14 @@ void main() async {
     print('✅ Firebase initialized successfully');
   } catch (e) {
     print('❌ Firebase initialization error: $e');
+  }
+  
+  // Initialize Notification Service
+  try {
+    await NotificationService().initialize();
+    print('✅ Notification service initialized');
+  } catch (e) {
+    print('❌ Notification initialization error: $e');
   }
   
   runApp(const MyApp());
@@ -35,6 +46,9 @@ class MyApp extends StatelessWidget {
         Provider<AuthService>(create: (_) => AuthService()),
         Provider<FirestoreService>(create: (_) => FirestoreService()),
         Provider<CoinGeckoService>(create: (_) => CoinGeckoService()),
+        Provider<NotificationService>(create: (_) => NotificationService()),
+        Provider<PortfolioService>(create: (_) => PortfolioService()),
+        Provider<AlertService>(create: (_) => AlertService()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

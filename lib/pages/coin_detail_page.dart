@@ -22,8 +22,15 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
   List<FlSpot> chartData = [];
   bool isLoadingChart = true;
   int selectedDays = 1;
+  double chartMinX = 0;
+  double chartMaxX = 0;
   
   final TextEditingController _amountController = TextEditingController();
+  final TextEditingController _stopLossController = TextEditingController();
+  final TextEditingController _takeProfitController = TextEditingController();
+  bool _enableStopLoss = false;
+  bool _enableTakeProfit = false;
+  
   final currencyFormat = NumberFormat.currency(locale: 'en_US', symbol: '\$');
 
   @override
@@ -35,6 +42,8 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
   @override
   void dispose() {
     _amountController.dispose();
+    _stopLossController.dispose();
+    _takeProfitController.dispose();
     super.dispose();
   }
 
@@ -52,13 +61,22 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
 
       if (mounted) {
         final spots = <FlSpot>[];
-        for (int i = 0; i < data.length; i++) {
-          final price = data[i][1] as num;
-          spots.add(FlSpot(i.toDouble(), price.toDouble()));
+        double minX = double.infinity;
+        double maxX = double.negativeInfinity;
+        
+        for (var point in data) {
+          final timestamp = (point[0] as num).toDouble();
+          final price = (point[1] as num).toDouble();
+          spots.add(FlSpot(timestamp, price));
+          
+          if (timestamp < minX) minX = timestamp;
+          if (timestamp > maxX) maxX = timestamp;
         }
 
         setState(() {
           chartData = spots;
+          chartMinX = minX;
+          chartMaxX = maxX;
           isLoadingChart = false;
         });
       }
@@ -88,6 +106,30 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
       return;
     }
 
+    // Validate stop loss and take profit
+    double? stopLoss;
+    double? takeProfit;
+
+    if (_enableStopLoss) {
+      stopLoss = double.tryParse(_stopLossController.text);
+      if (stopLoss == null || stopLoss >= widget.coin.currentPrice) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Stop Loss phải nhỏ hơn giá hiện tại')),
+        );
+        return;
+      }
+    }
+
+    if (_enableTakeProfit) {
+      takeProfit = double.tryParse(_takeProfitController.text);
+      if (takeProfit == null || takeProfit <= widget.coin.currentPrice) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Take Profit phải lớn hơn giá hiện tại')),
+        );
+        return;
+      }
+    }
+
     try {
       final firestoreService = Provider.of<FirestoreService>(context, listen: false);
       await firestoreService.buyCoin(
@@ -96,10 +138,18 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
         coinSymbol: widget.coin.symbol,
         amount: amount,
         price: widget.coin.currentPrice,
+        stopLoss: stopLoss,
+        takeProfit: takeProfit,
       );
 
       if (mounted) {
         _amountController.clear();
+        _stopLossController.clear();
+        _takeProfitController.clear();
+        setState(() {
+          _enableStopLoss = false;
+          _enableTakeProfit = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Mua thành công!'), backgroundColor: Colors.green),
         );
@@ -319,6 +369,68 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
+                    
+                    // Stop Loss & Take Profit Section
+                    ExpansionTile(
+                      title: const Text('⚙️ Cài đặt nâng cao', style: TextStyle(fontWeight: FontWeight.bold)),
+                      children: [
+                        // Stop Loss
+                        CheckboxListTile(
+                          title: const Text('Kích hoạt Stop Loss'),
+                          subtitle: const Text('Tự động bán khi giá giảm xuống'),
+                          value: _enableStopLoss,
+                          onChanged: (value) {
+                            setState(() {
+                              _enableStopLoss = value ?? false;
+                            });
+                          },
+                        ),
+                        if (_enableStopLoss)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: TextField(
+                              controller: _stopLossController,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: 'Giá Stop Loss',
+                                border: const OutlineInputBorder(),
+                                prefixText: '\$',
+                                hintText: 'Nhỏ hơn ${widget.coin.currentPrice.toStringAsFixed(2)}',
+                              ),
+                            ),
+                          ),
+                        const SizedBox(height: 8),
+                        
+                        // Take Profit
+                        CheckboxListTile(
+                          title: const Text('Kích hoạt Take Profit'),
+                          subtitle: const Text('Tự động bán khi giá tăng lên'),
+                          value: _enableTakeProfit,
+                          onChanged: (value) {
+                            setState(() {
+                              _enableTakeProfit = value ?? false;
+                            });
+                          },
+                        ),
+                        if (_enableTakeProfit)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: TextField(
+                              controller: _takeProfitController,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: 'Giá Take Profit',
+                                border: const OutlineInputBorder(),
+                                prefixText: '\$',
+                                hintText: 'Lớn hơn ${widget.coin.currentPrice.toStringAsFixed(2)}',
+                              ),
+                            ),
+                          ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    
                     Row(
                       children: [
                         Expanded(
