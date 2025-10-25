@@ -432,7 +432,7 @@ class _MarketPageState extends State<MarketPage> {
             const SizedBox(width: 8),
             
             // Actions
-            Column(
+Column(
               children: [
                 IconButton(
                   onPressed: () => _toggleFavorite(coin.id),
@@ -444,10 +444,11 @@ class _MarketPageState extends State<MarketPage> {
                 ),
                 IconButton(
                   onPressed: () {
+                    // Navigate to coin detail instead of trade page
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => TradePage(coin: coin),
+                        builder: (context) => CoinDetailPage(coin: coin),
                       ),
                     );
                   },

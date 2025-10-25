@@ -1,189 +1,77 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
+import 'dart:async';
 import '../models/coin.dart';
 import '../models/user_model.dart';
+import '../services/coingecko_service.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import 'coin_detail_page.dart';
 
 class TradePage extends StatefulWidget {
-  final Coin? coin;
-  
-  const TradePage({super.key, this.coin});
+  const TradePage({super.key});
 
   @override
   State<TradePage> createState() => _TradePageState();
 }
 
-class _TradePageState extends State<TradePage> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  bool isBuy = true;
-  
-  final TextEditingController _priceController = TextEditingController();
-  final TextEditingController _amountController = TextEditingController();
-  final TextEditingController _totalController = TextEditingController();
+class _TradePageState extends State<TradePage> with AutomaticKeepAliveClientMixin {
+  List<Coin> trendingCoins = [];
+  List<Coin> topGainers = [];
+  List<Coin> topLosers = [];
+  bool isLoading = true;
+  Timer? _refreshTimer;
   
   final currencyFormat = NumberFormat.currency(locale: 'en_US', symbol: '\$');
-  final numberFormat = NumberFormat.decimalPattern();
-  
-  UserModel? currentUser;
-  bool isLoading = false;
-  
-  // Default coin nếu không có coin được truyền vào
-  Coin get selectedCoin => widget.coin ?? Coin(
-    id: 'bitcoin',
-    symbol: 'BTC',
-    name: 'Bitcoin',
-    image: 'https://assets.coingecko.com/coins/images/1/large/bitcoin.png',
-    currentPrice: 67000.0,
-    marketCap: 1300000000000.0,
-    marketCapRank: 1,
-    priceChangePercentage24h: 2.5,
-    totalVolume: 25000000000.0,
-    high24h: 68500.0,
-    low24h: 65200.0,
-  );
+  final percentFormat = NumberFormat.decimalPattern();
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    _priceController.text = selectedCoin.currentPrice.toStringAsFixed(2);
-    _loadUserData();
-    _setupCalculations();
+    _loadData();
+    // Auto refresh mỗi 30 giây
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) => _loadData());
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
-    _priceController.dispose();
-    _amountController.dispose();
-    _totalController.dispose();
+    _refreshTimer?.cancel();
     super.dispose();
   }
 
-  void _setupCalculations() {
-    _priceController.addListener(_calculateTotal);
-    _amountController.addListener(_calculateTotal);
-    _totalController.addListener(_calculateAmount);
-  }
-
-  void _calculateTotal() {
-    final price = double.tryParse(_priceController.text) ?? 0;
-    final amount = double.tryParse(_amountController.text) ?? 0;
-    final total = price * amount;
-    
-    if (total > 0) {
-      _totalController.removeListener(_calculateAmount);
-      _totalController.text = total.toStringAsFixed(2);
-      _totalController.addListener(_calculateAmount);
-    }
-  }
-
-  void _calculateAmount() {
-    final price = double.tryParse(_priceController.text) ?? 0;
-    final total = double.tryParse(_totalController.text) ?? 0;
-    
-    if (price > 0 && total > 0) {
-      final amount = total / price;
-      _amountController.removeListener(_calculateTotal);
-      _amountController.text = amount.toStringAsFixed(8);
-      _amountController.addListener(_calculateTotal);
-    }
-  }
-
-  Future<void> _loadUserData() async {
+  Future<void> _loadData() async {
     try {
-      final authService = Provider.of<AuthService>(context, listen: false);
-      final firestoreService = Provider.of<FirestoreService>(context, listen: false);
+      final coinGeckoService = Provider.of<CoinGeckoService>(context, listen: false);
+      final coins = await coinGeckoService.getCoinMarkets(perPage: 50);
       
-      if (authService.currentUserId != null) {
-        currentUser = await firestoreService.getUserData(authService.currentUserId!);
-        setState(() {});
-      }
-    } catch (e) {
-      print('Error loading user data: $e');
-    }
-  }
-
-  Future<void> _executeTrade() async {
-    if (currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng đăng nhập để giao dịch')),
-      );
-      return;
-    }
-
-    final price = double.tryParse(_priceController.text);
-    final amount = double.tryParse(_amountController.text);
-    
-    if (price == null || amount == null || price <= 0 || amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng nhập giá và số lượng hợp lệ')),
-      );
-      return;
-    }
-
-    setState(() => isLoading = true);
-
-    try {
-      final authService = Provider.of<AuthService>(context, listen: false);
-      final firestoreService = Provider.of<FirestoreService>(context, listen: false);
-
-      if (isBuy) {
-        await firestoreService.buyCoin(
-          uid: authService.currentUserId!,
-          coinId: selectedCoin.id,
-          coinSymbol: selectedCoin.symbol,
-          amount: amount,
-          price: price,
-        );
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Đã mua ${amount.toStringAsFixed(8)} ${selectedCoin.symbol}'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } else {
-        await firestoreService.sellCoin(
-          uid: authService.currentUserId!,
-          coinId: selectedCoin.id,
-          coinSymbol: selectedCoin.symbol,
-          amount: amount,
-          price: price,
-        );
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Đã bán ${amount.toStringAsFixed(8)} ${selectedCoin.symbol}'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      }
-      
-      // Refresh user data
-      await _loadUserData();
-      
-      // Clear form
-      _amountController.clear();
-      _totalController.clear();
-      
-    } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi giao dịch: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        setState(() {
+          // Top 10 coins by market cap
+          trendingCoins = coins.take(10).toList();
+          
+          // Top gainers
+          topGainers = coins
+              .where((c) => c.priceChangePercentage24h > 0)
+              .toList()
+            ..sort((a, b) => b.priceChangePercentage24h.compareTo(a.priceChangePercentage24h));
+          topGainers = topGainers.take(5).toList();
+          
+          // Top losers
+          topLosers = coins
+              .where((c) => c.priceChangePercentage24h < 0)
+              .toList()
+            ..sort((a, b) => a.priceChangePercentage24h.compareTo(b.priceChangePercentage24h));
+          topLosers = topLosers.take(5).toList();
+          
+          isLoading = false;
+        });
       }
-    } finally {
+    } catch (e) {
       if (mounted) {
         setState(() => isLoading = false);
       }
@@ -192,328 +80,639 @@ class _TradePageState extends State<TradePage> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+    
+    final authService = Provider.of<AuthService>(context);
+    final firestoreService = Provider.of<FirestoreService>(context);
+    
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        title: Text(
-          '${selectedCoin.symbol}/USDT',
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Row(
-              children: [
-                Text(
-                  currencyFormat.format(selectedCoin.currentPrice),
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Icon(Icons.more_vert, color: Colors.black),
-              ],
+      backgroundColor: const Color(0xFFF5F5F5),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _loadData,
+              child: StreamBuilder<UserModel?>(
+                stream: firestoreService.streamUserData(authService.currentUserId!),
+                builder: (context, snapshot) {
+                  final user = snapshot.data;
+                  
+                  return CustomScrollView(
+                    slivers: [
+                      // Header
+                      SliverToBoxAdapter(
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Color(0xFF1E88E5), Color(0xFF1565C0)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          padding: const EdgeInsets.fromLTRB(20, 50, 20, 30),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Quick Trade',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Balance: ${currencyFormat.format(user?.balance ?? 0)}',
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              _buildMarketStats(),
+                            ],
+                          ),
+                        ),
+                      ),
+                      
+                      // Trending Coins
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.trending_up, color: Color(0xFF1E88E5)),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Trending',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  TextButton(
+                                    onPressed: () {
+                                      DefaultTabController.of(context).animateTo(1);
+                                    },
+                                    child: const Text('See All →'),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                height: 140,
+                                child: ListView.builder(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: trendingCoins.length,
+                                  itemBuilder: (context, index) {
+                                    return _buildTrendingCard(trendingCoins[index], user);
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      
+                      // Top Gainers
+                      SliverToBoxAdapter(
+                        child: _buildSection(
+                          title: 'Top Gainers 🚀',
+                          coins: topGainers,
+                          user: user,
+                          color: Colors.green,
+                        ),
+                      ),
+                      
+                      // Top Losers
+                      SliverToBoxAdapter(
+                        child: _buildSection(
+                          title: 'Top Losers 📉',
+                          coins: topLosers,
+                          user: user,
+                          color: Colors.red,
+                        ),
+                      ),
+                      
+                      const SliverToBoxAdapter(child: SizedBox(height: 20)),
+                    ],
+                  );
+                },
+              ),
             ),
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(40),
-          child: TabBar(
-            controller: _tabController,
-            indicatorColor: const Color(0xFFFFD400),
-            labelColor: Colors.black,
-            unselectedLabelColor: Colors.grey,
-            tabs: const [
-              Tab(text: 'Giao dịch'),
-              Tab(text: 'Lịch sử'),
-              Tab(text: 'Thông tin'),
-            ],
-          ),
-        ),
+    );
+  }
+
+  Widget _buildMarketStats() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildTradeTab(),
-          _buildHistoryTab(),
-          _buildInfoTab(),
+          _buildStatItem('Gainers', '${topGainers.length}', Colors.greenAccent),
+          Container(width: 1, height: 40, color: Colors.white30),
+          _buildStatItem('Losers', '${topLosers.length}', Colors.redAccent),
+          Container(width: 1, height: 40, color: Colors.white30),
+          _buildStatItem('Trending', '${trendingCoins.length}', Colors.orangeAccent),
         ],
       ),
     );
   }
 
-  Widget _buildTradeTab() {
-    final userBalance = currentUser?.balance ?? 0.0;
-    final userHolding = currentUser?.holdings[selectedCoin.id] ?? 0.0;
+  Widget _buildStatItem(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            color: color,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 12,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTrendingCard(Coin coin, UserModel? user) {
+    final isUp = coin.priceChangePercentage24h >= 0;
     
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CoinDetailPage(coin: coin),
+          ),
+        );
+      },
+      child: Container(
+        width: 160,
+        margin: const EdgeInsets.only(right: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isUp 
+                ? [const Color(0xFF4CAF50), const Color(0xFF66BB6A)]
+                : [const Color(0xFFEF5350), const Color(0xFFE57373)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: (isUp ? Colors.green : Colors.red).withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CachedNetworkImage(
+                  imageUrl: coin.image,
+                  width: 28,
+                  height: 28,
+                  errorWidget: (context, url, error) => 
+                      const Icon(Icons.currency_bitcoin, color: Colors.white, size: 28),
+                ),
+                const Spacer(),
+                Icon(
+                  isUp ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              coin.symbol.toUpperCase(),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              currencyFormat.format(coin.currentPrice),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${isUp ? '+' : ''}${coin.priceChangePercentage24h.toStringAsFixed(2)}%',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSection({
+    required String title,
+    required List<Coin> coins,
+    required UserModel? user,
+    required Color color,
+  }) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // User balance info
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue.shade200),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
+          ),
+          const SizedBox(height: 12),
+          ...coins.map((coin) => _buildCoinListItem(coin, user, color)).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCoinListItem(Coin coin, UserModel? user, Color accentColor) {
+    final isUp = coin.priceChangePercentage24h >= 0;
+    final holding = user?.holdings[coin.id] ?? 0;
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          CachedNetworkImage(
+            imageUrl: coin.image,
+            width: 40,
+            height: 40,
+            errorWidget: (context, url, error) => 
+                const Icon(Icons.currency_bitcoin, size: 40),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Số dư tài khoản',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                Text(
+                  coin.name,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('USDT: ${currencyFormat.format(userBalance)}'),
-                    Text('${selectedCoin.symbol}: ${userHolding.toStringAsFixed(8)}'),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 20),
-          
-          // Buy/Sell toggle
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => isBuy = true),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: isBuy ? Colors.green : Colors.transparent,
-                        borderRadius: BorderRadius.circular(8),
+                    Text(
+                      currencyFormat.format(coin.currentPrice),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
                       ),
-                      child: Center(
-                        child: Text(
-                          'Mua ${selectedCoin.symbol}',
-                          style: TextStyle(
-                            color: isBuy ? Colors.white : Colors.black,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: (isUp ? Colors.green : Colors.red).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        '${isUp ? '+' : ''}${coin.priceChangePercentage24h.toStringAsFixed(2)}%',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isUp ? Colors.green : Colors.red,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
-                  ),
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => isBuy = false),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: !isBuy ? Colors.red : Colors.transparent,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'Bán ${selectedCoin.symbol}',
-                          style: TextStyle(
-                            color: !isBuy ? Colors.white : Colors.black,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 20),
-          
-          // Trade form
-          Expanded(
-            child: Column(
-              children: [
-                _buildInputField(
-                  'Giá (USDT)',
-                  _priceController,
-                  selectedCoin.currentPrice.toStringAsFixed(2),
-                ),
-                const SizedBox(height: 16),
-                _buildInputField(
-                  'Số lượng (${selectedCoin.symbol})',
-                  _amountController,
-                  null,
-                ),
-                const SizedBox(height: 16),
-                _buildInputField(
-                  'Tổng (USDT)',
-                  _totalController,
-                  null,
-                ),
-                
-                const SizedBox(height: 20),
-                
-                // Quick amount buttons
-                const Text(
-                  'Chọn nhanh',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    _buildQuickButton('25%'),
-                    const SizedBox(width: 8),
-                    _buildQuickButton('50%'),
-                    const SizedBox(width: 8),
-                    _buildQuickButton('75%'),
-                    const SizedBox(width: 8),
-                    _buildQuickButton('100%'),
                   ],
                 ),
-                
-                const Spacer(),
-                
-                // Execute button
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: isLoading ? null : _executeTrade,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isBuy ? Colors.green : Colors.red,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                if (holding > 0) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Holding: ${holding.toStringAsFixed(4)} ${coin.symbol.toUpperCase()}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[500],
                     ),
-                    child: isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : Text(
-                            isBuy ? 'Mua ${selectedCoin.symbol}' : 'Bán ${selectedCoin.symbol}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Row(
+            children: [
+              _buildActionButton(
+                icon: Icons.add_shopping_cart,
+                color: Colors.green,
+                onTap: () => _quickBuy(coin, user),
+              ),
+              const SizedBox(width: 8),
+              _buildActionButton(
+                icon: Icons.sell,
+                color: Colors.red,
+                onTap: holding > 0 ? () => _quickSell(coin, user) : null,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required Color color,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: onTap != null ? color.withOpacity(0.1) : Colors.grey[200],
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          icon,
+          color: onTap != null ? color : Colors.grey,
+          size: 20,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _quickBuy(Coin coin, UserModel? user) async {
+    if (user == null) return;
+    
+    final amountController = TextEditingController();
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CachedNetworkImage(
+                  imageUrl: coin.image,
+                  width: 32,
+                  height: 32,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Buy ${coin.name}',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 20),
+            Text(
+              'Price: ${currencyFormat.format(coin.currentPrice)}',
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: amountController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Amount',
+                hintText: 'Enter amount',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () async {
+                  final amount = double.tryParse(amountController.text);
+                  if (amount == null || amount <= 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Invalid amount')),
+                    );
+                    return;
+                  }
+                  
+                  final total = amount * coin.currentPrice;
+                  if (total > user.balance) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Insufficient balance')),
+                    );
+                    return;
+                  }
+                  
+                  try {
+                    final firestoreService = Provider.of<FirestoreService>(context, listen: false);
+                    await firestoreService.buyCoin(
+                      uid: user.uid,
+                      coinId: coin.id,
+                      coinSymbol: coin.symbol,
+                      amount: amount,
+                      price: coin.currentPrice,
+                    );
+                    
+                    if (mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Purchase successful!'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error: $e')),
+                      );
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Buy Now',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildInputField(String label, TextEditingController controller, String? placeholder) {
-    return TextField(
-      controller: controller,
-      keyboardType: TextInputType.number,
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-      ],
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: placeholder,
-        labelStyle: const TextStyle(color: Colors.black54),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFFFD400), width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      ),
-    );
-  }
-
-  Widget _buildQuickButton(String percentage) {
-    return Expanded(
-      child: ElevatedButton(
-        onPressed: () => _setPercentage(percentage),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.grey[200],
-          foregroundColor: Colors.black,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-        child: Text(percentage),
-      ),
-    );
-  }
-
-  void _setPercentage(String percentage) {
-    if (currentUser == null) return;
+  Future<void> _quickSell(Coin coin, UserModel? user) async {
+    if (user == null) return;
     
-    final percent = int.parse(percentage.replaceAll('%', '')) / 100.0;
-    final price = double.tryParse(_priceController.text) ?? selectedCoin.currentPrice;
+    final holding = user.holdings[coin.id] ?? 0;
+    final amountController = TextEditingController(text: holding.toStringAsFixed(4));
     
-    if (isBuy) {
-      // Calculate amount based on available balance
-      final availableBalance = currentUser!.balance * percent;
-      final amount = availableBalance / price;
-      _amountController.text = amount.toStringAsFixed(8);
-    } else {
-      // Calculate amount based on available coins
-      final availableCoins = (currentUser!.holdings[selectedCoin.id] ?? 0.0) * percent;
-      _amountController.text = availableCoins.toStringAsFixed(8);
-    }
-  }
-
-  Widget _buildHistoryTab() {
-    return const Center(
-      child: Text('Lịch sử giao dịch sẽ được hiển thị ở đây'),
-    );
-  }
-
-  Widget _buildInfoTab() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildInfoRow('Tên', selectedCoin.name),
-          _buildInfoRow('Symbol', selectedCoin.symbol),
-          _buildInfoRow('Giá hiện tại', currencyFormat.format(selectedCoin.currentPrice)),
-          _buildInfoRow('Thay đổi 24h', '${selectedCoin.priceChangePercentage24h.toStringAsFixed(2)}%'),
-          _buildInfoRow('Cao nhất 24h', currencyFormat.format(selectedCoin.high24h)),
-          _buildInfoRow('Thấp nhất 24h', currencyFormat.format(selectedCoin.low24h)),
-          _buildInfoRow('Market Cap', currencyFormat.format(selectedCoin.marketCap)),
-          _buildInfoRow('Xếp hạng', '#${selectedCoin.marketCapRank}'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(color: Colors.grey),
-          ),
-          Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ],
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CachedNetworkImage(
+                  imageUrl: coin.image,
+                  width: 32,
+                  height: 32,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Sell ${coin.name}',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Holdings: ${holding.toStringAsFixed(4)} ${coin.symbol.toUpperCase()}',
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Price: ${currencyFormat.format(coin.currentPrice)}',
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: amountController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Amount',
+                hintText: 'Enter amount',
+                border: const OutlineInputBorder(),
+                suffixText: 'Max: ${holding.toStringAsFixed(4)}',
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () async {
+                  final amount = double.tryParse(amountController.text);
+                  if (amount == null || amount <= 0 || amount > holding) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Invalid amount')),
+                    );
+                    return;
+                  }
+                  
+                  try {
+                    final firestoreService = Provider.of<FirestoreService>(context, listen: false);
+                    await firestoreService.sellCoin(
+                      uid: user.uid,
+                      coinId: coin.id,
+                      coinSymbol: coin.symbol,
+                      amount: amount,
+                      price: coin.currentPrice,
+                    );
+                    
+                    if (mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Sold successfully!'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error: $e')),
+                      );
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Sell Now',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
