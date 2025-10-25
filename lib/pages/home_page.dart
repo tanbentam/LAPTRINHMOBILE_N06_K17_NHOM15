@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../models/coin.dart';
 import '../services/coingecko_service.dart';
 import '../services/auth_service.dart';
+import '../services/fallback_data.dart';
 import 'coin_detail_page.dart';
 import 'assets_page.dart';
 import '../settings/settings_page.dart';
@@ -21,6 +22,7 @@ class _HomePageState extends State<HomePage> {
   String searchQuery = '';
   List<Coin> allCoins = [];
   bool isLoading = true;
+  bool isUsingFallbackData = false;
 
   final currencyFormat = NumberFormat.currency(locale: 'en_US', symbol: '\$');
   final percentFormat = NumberFormat.decimalPattern();
@@ -50,6 +52,10 @@ class _HomePageState extends State<HomePage> {
         setState(() {
           allCoins = coins;
           isLoading = false;
+          // Kiểm tra xem có phải là fallback data không
+          isUsingFallbackData = coins.isNotEmpty && 
+              coins.length == FallbackData.getBasicCoins().length &&
+              coins.first.id == 'bitcoin';
         });
       }
     } catch (e) {
@@ -57,8 +63,26 @@ class _HomePageState extends State<HomePage> {
         setState(() {
           isLoading = false;
         });
+        
+        String errorMessage = 'Lỗi tải dữ liệu';
+        if (e.toString().contains('429')) {
+          errorMessage = 'Đã gọi quá nhiều lần. Vui lòng thử lại sau 1 phút.';
+        } else if (e.toString().contains('Failed host lookup')) {
+          errorMessage = 'Không có kết nối internet. Vui lòng kiểm tra kết nối.';
+        } else if (e.toString().contains('TimeoutException')) {
+          errorMessage = 'Kết nối bị timeout. Vui lòng thử lại.';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi tải dữ liệu: $e')),
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            action: SnackBarAction(
+              label: 'Thử lại',
+              textColor: Colors.white,
+              onPressed: _loadCoins,
+            ),
+          ),
         );
       }
     }
@@ -193,6 +217,70 @@ class _HomePageState extends State<HomePage> {
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  
+                  // Status indicator
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isUsingFallbackData 
+                          ? Colors.orange[50] 
+                          : allCoins.isNotEmpty 
+                              ? Colors.green[50] 
+                              : Colors.grey[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isUsingFallbackData 
+                            ? Colors.orange.shade200
+                            : allCoins.isNotEmpty 
+                                ? Colors.green.shade200 
+                                : Colors.grey.shade200,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isUsingFallbackData 
+                              ? Icons.cloud_off 
+                              : allCoins.isNotEmpty 
+                                  ? Icons.cloud_done 
+                                  : Icons.cloud_queue,
+                          size: 16,
+                          color: isUsingFallbackData 
+                              ? Colors.orange 
+                              : allCoins.isNotEmpty 
+                                  ? Colors.green 
+                                  : Colors.grey,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            isUsingFallbackData 
+                                ? 'Sử dụng dữ liệu offline (${allCoins.length} coins)'
+                                : allCoins.isNotEmpty 
+                                    ? 'Dữ liệu trực tuyến (${allCoins.length} coins)'
+                                    : 'Đang tải dữ liệu...',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isUsingFallbackData 
+                                  ? Colors.orange[700]
+                                  : allCoins.isNotEmpty 
+                                      ? Colors.green[700] 
+                                      : Colors.grey[700],
+                            ),
+                          ),
+                        ),
+                        if (!isLoading)
+                          Text(
+                            'Kéo để làm mới',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 20),
