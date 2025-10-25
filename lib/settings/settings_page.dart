@@ -1,62 +1,74 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/auth_service.dart';
+import 'device_management_page.dart';
 
-class OtpSetupPage extends StatefulWidget {
-  const OtpSetupPage({super.key});
-
-  @override
-  State<OtpSetupPage> createState() => _OtpSetupPageState();
-}
-
-class _OtpSetupPageState extends State<OtpSetupPage> {
-  bool _enabled = false;
-  // Trong thực tế bạn sẽ tích hợp với backend (tạo secret, QR code...), ở đây làm demo
-  @override
-  void initState() {
-    super.initState();
-    // nếu muốn: load trạng thái từ SharedPreferences hoặc backend
-  }
+class SettingsPage extends StatelessWidget {
+  const SettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final authService = Provider.of<AuthService>(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Thiết lập Digital OTP'),
+        title: const Text('Cài đặt'),
         backgroundColor: Colors.black,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Digital OTP', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            const Text('Bật OTP để tăng cường bảo mật. Bạn sẽ cần mã OTP từ ứng dụng xác thực khi đăng nhập.'),
-            const SizedBox(height: 20),
-
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.lock_clock),
-              title: const Text('Sử dụng ứng dụng xác thực (Google Authenticator, Authy,...)'),
-            ),
-
-            const SizedBox(height: 12),
-
-            Center(
-              child: ElevatedButton(
-                onPressed: () async {
-                  // Ở đây demo: chỉ bật/tắt
-                  setState(() => _enabled = !_enabled);
-                  // Trả về trạng thái về trang trước
-                  Navigator.pop(context, _enabled);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _enabled ? Colors.red : Colors.black,
+      body: ListView(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.person),
+            title: const Text('Tài khoản'),
+            subtitle: Text(authService.currentUser?.email ?? ''),
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.devices),
+            title: const Text('Quản lý thiết bị'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const DeviceManagementPage()),
+              );
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.info_outline),
+            title: const Text('Về ứng dụng'),
+            subtitle: const Text('Phiên bản 1.0.0'),
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.red),
+            title: const Text('Đăng xuất', style: TextStyle(color: Colors.red)),
+            onTap: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Xác nhận'),
+                  content: const Text('Bạn có chắc muốn đăng xuất?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Hủy'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Đăng xuất', style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
                 ),
-                child: Text(_enabled ? 'Tắt OTP' : 'Bật OTP'),
-              ),
-            ),
-          ],
-        ),
+              );
+
+              if (confirm == true && context.mounted) {
+                await authService.signOut();
+              }
+            },
+          ),
+        ],
       ),
     );
   }

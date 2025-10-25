@@ -1,4 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:intl/intl.dart';
+import '../models/coin.dart';
+import '../services/coingecko_service.dart';
+import '../services/auth_service.dart';
+import 'coin_detail_page.dart';
 import 'assets_page.dart';
 import '../settings/settings_page.dart';
 class HomePage extends StatefulWidget {
@@ -12,88 +19,101 @@ class _HomePageState extends State<HomePage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _searchController = TextEditingController();
   String searchQuery = '';
+  List<Coin> allCoins = [];
+  bool isLoading = true;
 
-  final List<Map<String, dynamic>> coins = [
-    {'name': 'BNB', 'price': '1,010.60', 'change': '+0.48%', 'isUp': true},
-    {'name': 'BTC', 'price': '112,895.37', 'change': '+0.75%', 'isUp': true},
-    {'name': 'ETH', 'price': '4,158.87', 'change': '+1.34%', 'isUp': true},
-    {'name': 'SOL', 'price': '206.37', 'change': '-0.33%', 'isUp': false},
-    {'name': 'FF', 'price': '0.20416', 'change': '+308.32%', 'isUp': true},
-  ];
+  final currencyFormat = NumberFormat.currency(locale: 'en_US', symbol: '\$');
+  final percentFormat = NumberFormat.decimalPattern();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCoins();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadCoins() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final coinGeckoService = Provider.of<CoinGeckoService>(context, listen: false);
+      final coins = await coinGeckoService.getCoinMarkets(perPage: 50);
+      
+      if (mounted) {
+        setState(() {
+          allCoins = coins;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi tải dữ liệu: $e')),
+        );
+      }
+    }
+  }
+
+  List<Coin> get filteredCoins {
+    if (searchQuery.isEmpty) return allCoins;
+    
+    return allCoins.where((coin) {
+      return coin.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+          coin.symbol.toLowerCase().contains(searchQuery.toLowerCase());
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Lọc danh sách theo từ khóa
-    final filteredCoins = coins
-        .where((coin) =>
-        coin['name']
-            .toString()
-            .toLowerCase()
-            .contains(searchQuery.toLowerCase()))
-        .toList();
+    final authService = Provider.of<AuthService>(context);
 
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: Colors.white,
-
-      // 🟢 Drawer menu đã chỉnh sửa
       drawer: Drawer(
         backgroundColor: Colors.white,
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(color: Colors.black),
+            DrawerHeader(
+              decoration: const BoxDecoration(color: Colors.black),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
+                  const CircleAvatar(
                     radius: 28,
-                    backgroundImage: AssetImage('assets/profile.png'),
+                    backgroundColor: Colors.amber,
+                    child: Icon(Icons.person, size: 32, color: Colors.black),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Text(
-                    'Xin chào, Nhà đầu tư!',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
+                    authService.currentUser?.email ?? 'Xin chào!',
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
                   ),
                 ],
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.person, color: Colors.black),
-              title: const Text('Tài khoản'),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Mở trang tài khoản')),
-                );
-              },
-            ),
-            ListTile(
-              leading:
-              const Icon(Icons.account_balance_wallet, color: Colors.black),
+              leading: const Icon(Icons.account_balance_wallet, color: Colors.black),
               title: const Text('Ví tiền'),
               onTap: () {
-                Navigator.pop(context); // 🔹 Đóng Drawer trước
+                Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                      builder: (context) =>
-                      const AssetsPage()), // 🔹 Mở trang AssetsPage
+                  MaterialPageRoute(builder: (context) => const AssetsPage()),
                 );
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.bar_chart, color: Colors.black),
-              title: const Text('Thị trường'),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Xem thị trường')),
-                );
-              },
-            ),
-            const Divider(),
             ListTile(
               leading: const Icon(Icons.settings, color: Colors.black),
               title: const Text('Cài đặt'),
@@ -101,205 +121,120 @@ class _HomePageState extends State<HomePage> {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const _SettingsPlaceholder()),
+                  MaterialPageRoute(builder: (context) => const SettingsPage()),
                 );
               },
             ),
+            const Divider(),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text('Đăng xuất',
-                  style: TextStyle(color: Colors.red)),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Đăng xuất thành công')),
-                );
+              title: const Text('Đăng xuất', style: TextStyle(color: Colors.red)),
+              onTap: () async {
+                await authService.signOut();
+                if (mounted) Navigator.pop(context);
               },
             ),
           ],
         ),
       ),
-
-      // 🧩 Phần nội dung chính
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Thanh tìm kiếm + icon
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.menu, color: Colors.black),
-                      onPressed: () {
-                        _scaffoldKey.currentState?.openDrawer();
-                      },
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Container(
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: TextField(
-                          controller: _searchController,
-                          style: const TextStyle(color: Colors.black),
-                          onChanged: (value) {
-                            setState(() {
-                              searchQuery = value;
-                            });
-                          },
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            hintText: 'Sàn giao dịch / Ví...',
-                            hintStyle: TextStyle(color: Colors.grey),
-                            prefixIcon:
-                            Icon(Icons.search, color: Colors.grey),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    IconButton(
-                      icon: const Icon(Icons.headphones, color: Colors.black),
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Trò chuyện với hỗ trợ')),
-                        );
-                      },
-                    ),
-                    const SizedBox(width: 10),
-                    IconButton(
-                      icon: const Icon(Icons.notifications_none,
-                          color: Colors.black),
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Xem thông báo')),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 20),
-
-                const Text(
-                  'Khám phá lĩnh vực tài sản số!',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // Danh mục coin
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
+        child: RefreshIndicator(
+          onRefresh: _loadCoins,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Search bar
+                  Row(
                     children: [
-                      Row(
-                        children: const [
-                          Text(
-                            'Phổ biến',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Spacer(),
-                          Text(
-                            'Tiền mã hóa',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-
-                      if (filteredCoins.isEmpty)
-                        const Text(
-                          'Không tìm thấy kết quả.',
-                          style: TextStyle(color: Colors.grey),
-                        )
-                      else
-                        for (var coin in filteredCoins)
-                          _buildCoinRow(
-                            coin['name'],
-                            coin['price'],
-                            coin['change'],
-                            coin['isUp'],
-                          ),
-
-                      const SizedBox(height: 10),
-                      const Center(
-                        child: Text(
-                          'Xem thêm',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                const Text(
-                  'Khám phá',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    children: [
-                      const CircleAvatar(
-                        radius: 22,
-                        backgroundImage: AssetImage('assets/profile.png'),
+                      IconButton(
+                        icon: const Icon(Icons.menu, color: Colors.black),
+                        onPressed: () => _scaffoldKey.currentState?.openDrawer(),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
-                              ' Raju X • 19 phút trước',
-                              style: TextStyle(
-                                  color: Colors.grey, fontSize: 12),
+                        child: Container(
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: TextField(
+                            controller: _searchController,
+                            style: const TextStyle(color: Colors.black),
+                            onChanged: (value) {
+                              setState(() {
+                                searchQuery = value;
+                              });
+                            },
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              hintText: 'Tìm kiếm coin...',
+                              hintStyle: TextStyle(color: Colors.grey),
+                              prefixIcon: Icon(Icons.search, color: Colors.grey),
                             ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Mở khóa Lợi suất Tổ chức với BounceBit CeDeFi: '
-                                  'Hệ sinh thái, Cơ sở hạ tầng & Chiến lược',
-                              style: TextStyle(
-                                  color: Colors.black, fontSize: 13),
-                            ),
-                          ],
+                          ),
                         ),
+                      ),
+                      const SizedBox(width: 10),
+                      IconButton(
+                        icon: const Icon(Icons.refresh, color: Colors.black),
+                        onPressed: _loadCoins,
                       ),
                     ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Thị trường Crypto',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  
+                  // Coins list
+                  if (isLoading)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  else if (filteredCoins.isEmpty)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20.0),
+                        child: Text(
+                          'Không tìm thấy kết quả.',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      padding: const EdgeInsets.all(12),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: filteredCoins.length,
+                        itemBuilder: (context, index) {
+                          final coin = filteredCoins[index];
+                          return _buildCoinRow(coin);
+                        },
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
@@ -307,52 +242,86 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Widget coin row
-  Widget _buildCoinRow(
-      String name, String price, String change, bool isUp) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Text(name,
-              style: const TextStyle(
-                  color: Colors.black, fontWeight: FontWeight.w500)),
-          const Spacer(),
-          Text(price,
-              style: const TextStyle(
-                  color: Colors.black, fontWeight: FontWeight.bold)),
-          const SizedBox(width: 10),
-          Container(
-            decoration: BoxDecoration(
-              color: isUp ? Colors.green[100] : Colors.red[100],
-              borderRadius: BorderRadius.circular(5),
+  Widget _buildCoinRow(Coin coin) {
+    final isUp = coin.priceChangePercentage24h >= 0;
+    
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CoinDetailPage(coin: coin),
+          ),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            // Coin logo
+            CachedNetworkImage(
+              imageUrl: coin.image,
+              width: 32,
+              height: 32,
+              placeholder: (context, url) => const CircularProgressIndicator(),
+              errorWidget: (context, url, error) => const Icon(Icons.currency_bitcoin),
             ),
-            padding:
-            const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Text(
-              change,
-              style: TextStyle(
-                color: isUp ? Colors.green[700] : Colors.red[700],
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
+            const SizedBox(width: 10),
+            // Coin name & symbol
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    coin.symbol,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  Text(
+                    coin.name,
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+            // Price & change
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  currencyFormat.format(coin.currentPrice),
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                    color: isUp ? Colors.green[100] : Colors.red[100],
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Text(
+                    '${isUp ? '+' : ''}${percentFormat.format(coin.priceChangePercentage24h)}%',
+                    style: TextStyle(
+                      color: isUp ? Colors.green[700] : Colors.red[700],
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-    );
-  }
-}
-
-// Local placeholder Settings page used when the external SettingsPage class isn't available.
-class _SettingsPlaceholder extends StatelessWidget {
-  const _SettingsPlaceholder({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Cài đặt')),
-      body: const Center(child: Text('Settings page')),
     );
   }
 }

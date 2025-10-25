@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1063315742087",
+    "project_id": "quanlytienao-n06-k17-nhom15",
+    "storage_bucket": "quanlytienao-n06-k17-nhom15.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1063315742087:android:e9ef0c65eee116d5750722",
+        "android_client_info": {
+          "package_name": "com.ltmobile.n02group15.quanlytienao"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAhjbqJ9e5uPIEnPH7zLIuKPVH7PV45q0I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
