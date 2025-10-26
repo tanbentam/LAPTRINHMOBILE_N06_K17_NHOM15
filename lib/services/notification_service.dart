@@ -2,6 +2,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../models/notification_settings.dart' as user_settings;
 
 // Top-level function để xử lý background messages
 @pragma('vm:entry-point')
@@ -199,6 +200,45 @@ class NotificationService {
 
   // ============= LOCAL NOTIFICATION METHODS =============
 
+  /// Lưu thông báo vào Firestore
+  Future<void> _saveNotificationToFirestore({
+    required String type,
+    required String title,
+    required String body,
+    Map<String, dynamic>? data,
+  }) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await _db.collection('users').doc(user.uid).collection('notifications').add({
+          'type': type,
+          'title': title,
+          'body': body,
+          'timestamp': FieldValue.serverTimestamp(),
+          'isRead': false,
+          'data': data,
+        });
+      }
+    } catch (e) {
+      print('❌ Error saving notification to Firestore: $e');
+    }
+  }
+
+  /// Lấy cài đặt thông báo của user
+  Future<user_settings.UserNotificationSettings> _getNotificationSettings() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final doc = await _db.collection('users').doc(user.uid).get();
+        final settings = doc.data()?['notificationSettings'];
+        return user_settings.UserNotificationSettings.fromMap(settings);
+      }
+    } catch (e) {
+      print('❌ Error getting notification settings: $e');
+    }
+    return user_settings.UserNotificationSettings();
+  }
+
   /// Hiển thị thông báo giao dịch thành công
   Future<void> showTradeNotification({
     required String type,
@@ -206,6 +246,13 @@ class NotificationService {
     required double amount,
     required double price,
   }) async {
+    // Kiểm tra cài đặt
+    final settings = await _getNotificationSettings();
+    if (!settings.tradeNotifications) {
+      print('⚠️ Trade notifications disabled');
+      return;
+    }
+
     const androidDetails = AndroidNotificationDetails(
       'trade_notifications',
       'Trade Notifications',
@@ -234,6 +281,19 @@ class NotificationService {
       notificationDetails,
       payload: 'trade:$coinSymbol',
     );
+
+    // Lưu vào Firestore
+    await _saveNotificationToFirestore(
+      type: 'trade',
+      title: title,
+      body: body,
+      data: {
+        'coinSymbol': coinSymbol,
+        'amount': amount,
+        'price': price,
+        'tradeType': type,
+      },
+    );
   }
 
   /// Hiển thị thông báo cảnh báo giá
@@ -243,6 +303,13 @@ class NotificationService {
     required double currentPrice,
     required bool isAbove,
   }) async {
+    // Kiểm tra cài đặt
+    final settings = await _getNotificationSettings();
+    if (!settings.priceAlerts) {
+      print('⚠️ Price alerts disabled');
+      return;
+    }
+
     const androidDetails = AndroidNotificationDetails(
       'price_alerts',
       'Price Alerts',
@@ -268,6 +335,19 @@ class NotificationService {
       notificationDetails,
       payload: 'price_alert:$coinSymbol',
     );
+
+    // Lưu vào Firestore
+    await _saveNotificationToFirestore(
+      type: 'price_alert',
+      title: title,
+      body: body,
+      data: {
+        'coinSymbol': coinSymbol,
+        'targetPrice': targetPrice,
+        'currentPrice': currentPrice,
+        'isAbove': isAbove,
+      },
+    );
   }
 
   /// Hiển thị thông báo tin tức thị trường
@@ -276,6 +356,13 @@ class NotificationService {
     required String newsTitle,
     required String newsBody,
   }) async {
+    // Kiểm tra cài đặt
+    final settings = await _getNotificationSettings();
+    if (!settings.newsNotifications) {
+      print('⚠️ News notifications disabled');
+      return;
+    }
+
     const androidDetails = AndroidNotificationDetails(
       'market_news',
       'Market News',
@@ -296,6 +383,14 @@ class NotificationService {
       notificationDetails,
       payload: 'news:$coinSymbol',
     );
+
+    // Lưu vào Firestore
+    await _saveNotificationToFirestore(
+      type: 'news',
+      title: '📰 $newsTitle',
+      body: newsBody,
+      data: {'coinSymbol': coinSymbol},
+    );
   }
 
   /// Hiển thị thông báo biến động mạnh
@@ -304,6 +399,12 @@ class NotificationService {
     required double changePercent,
     required String timeframe,
   }) async {
+    // Kiểm tra cài đặt
+    final settings = await _getNotificationSettings();
+    if (!settings.volatilityAlerts) {
+      print('⚠️ Volatility alerts disabled');
+      return;
+    }
     const androidDetails = AndroidNotificationDetails(
       'volatility_alerts',
       'Volatility Alerts',
@@ -320,13 +421,27 @@ class NotificationService {
     final isPositive = changePercent > 0;
     final emoji = isPositive ? '🚀' : '⚠️';
     final sign = isPositive ? '+' : '';
+    final title = '$emoji Biến động mạnh: $coinSymbol';
+    final body = '$coinSymbol ${isPositive ? 'tăng' : 'giảm'} $sign${changePercent.toStringAsFixed(2)}% trong $timeframe';
     
     await _notifications.show(
       _generateNotificationId(),
-      '$emoji Biến động mạnh: $coinSymbol',
-      '$coinSymbol ${isPositive ? 'tăng' : 'giảm'} $sign${changePercent.toStringAsFixed(2)}% trong $timeframe',
+      title,
+      body,
       notificationDetails,
       payload: 'volatility:$coinSymbol',
+    );
+
+    // Lưu vào Firestore
+    await _saveNotificationToFirestore(
+      type: 'volatility',
+      title: title,
+      body: body,
+      data: {
+        'coinSymbol': coinSymbol,
+        'changePercent': changePercent,
+        'timeframe': timeframe,
+      },
     );
   }
 

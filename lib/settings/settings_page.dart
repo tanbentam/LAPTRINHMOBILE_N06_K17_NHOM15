@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import 'device_management_page.dart';
+import 'notification_settings_page.dart';
 import '../pages/debug_page.dart';
 import '../pages/simulate_balance_page.dart';
 import '../pages/notification_demo_page.dart';
@@ -35,6 +36,18 @@ class SettingsPage extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const SimulateBalancePage()),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.notifications_active, color: Colors.blue),
+            title: const Text('Cài đặt thông báo'),
+            subtitle: const Text('Tùy chỉnh các loại thông báo nhận được'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NotificationSettingsPage()),
               );
             },
           ),

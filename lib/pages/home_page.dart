@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/coin.dart';
 import '../services/coingecko_service.dart';
 import '../services/auth_service.dart';
 import 'coin_detail_page.dart';
 import 'assets_page.dart';
+import 'notification_center_page.dart';
 import '../settings/settings_page.dart';
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -188,13 +190,59 @@ class _HomePageState extends State<HomePage> {
                               // Scroll to search
                             },
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Thông báo')),
-                              );
-                            },
+                          Stack(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const NotificationCenterPage(),
+                                    ),
+                                  );
+                                },
+                              ),
+                              // Notification badge
+                              StreamBuilder<QuerySnapshot>(
+                                stream: FirebaseFirestore.instance
+                                    .collection('users')
+                                    .doc(authService.currentUserId)
+                                    .collection('notifications')
+                                    .where('isRead', isEqualTo: false)
+                                    .snapshots(),
+                                builder: (context, snapshot) {
+                                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  final unreadCount = snapshot.data!.docs.length;
+                                  return Positioned(
+                                    right: 8,
+                                    top: 8,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      constraints: const BoxConstraints(
+                                        minWidth: 18,
+                                        minHeight: 18,
+                                      ),
+                                      child: Text(
+                                        unreadCount > 99 ? '99+' : '$unreadCount',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
                           ),
                         ],
                       ),

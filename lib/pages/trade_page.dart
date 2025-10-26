@@ -8,6 +8,7 @@ import '../models/user_model.dart';
 import '../services/coingecko_service.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import '../services/notification_service.dart';
 import 'coin_detail_page.dart';
 
 class TradePage extends StatefulWidget {
@@ -563,6 +564,15 @@ class _TradePageState extends State<TradePage> with AutomaticKeepAliveClientMixi
                       amount: amount,
                       price: coin.currentPrice,
                     );
+
+                    // Gửi thông báo
+                    final notificationService = NotificationService();
+                    await notificationService.showTradeNotification(
+                      type: 'buy',
+                      coinSymbol: coin.symbol.toUpperCase(),
+                      amount: amount,
+                      price: coin.currentPrice,
+                    );
                     
                     if (mounted) {
                       Navigator.pop(context);
@@ -677,6 +687,15 @@ class _TradePageState extends State<TradePage> with AutomaticKeepAliveClientMixi
                       uid: user.uid,
                       coinId: coin.id,
                       coinSymbol: coin.symbol,
+                      amount: amount,
+                      price: coin.currentPrice,
+                    );
+
+                    // Gửi thông báo
+                    final notificationService = NotificationService();
+                    await notificationService.showTradeNotification(
+                      type: 'sell',
+                      coinSymbol: coin.symbol.toUpperCase(),
                       amount: amount,
                       price: coin.currentPrice,
                     );
