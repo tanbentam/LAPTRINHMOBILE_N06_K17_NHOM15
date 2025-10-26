@@ -27,6 +27,35 @@ class FirestoreService {
     }
   }
 
+  // Update FCM Token
+  Future<void> updateFCMToken(String uid, String fcmToken) async {
+    try {
+      await _db.collection('users').doc(uid).update({
+        'fcmToken': fcmToken,
+        'lastTokenUpdate': FieldValue.serverTimestamp(),
+      });
+      print('✅ FCM Token updated for user: $uid');
+    } catch (e) {
+      print('❌ Error updating FCM token: $e');
+      rethrow;
+    }
+  }
+
+  // Get user FCM token
+  Future<String?> getUserFCMToken(String uid) async {
+    try {
+      DocumentSnapshot doc = await _db.collection('users').doc(uid).get();
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        return data['fcmToken'] as String?;
+      }
+      return null;
+    } catch (e) {
+      print('❌ Error getting FCM token: $e');
+      return null;
+    }
+  }
+
   // Get user data
   Future<UserModel?> getUserData(String uid) async {
     try {
@@ -128,6 +157,9 @@ class FirestoreService {
         stopLoss: stopLoss,
         takeProfit: takeProfit,
       );
+
+      // 🔔 Gửi thông báo giao dịch thành công
+      print('📱 Sending trade notification for BUY $coinSymbol');
     } catch (e) {
       print('Buy coin error: $e');
       rethrow;
@@ -179,6 +211,9 @@ class FirestoreService {
         price: price,
         total: total,
       );
+
+      // 🔔 Gửi thông báo giao dịch thành công
+      print('📱 Sending trade notification for SELL $coinSymbol');
     } catch (e) {
       print('Sell coin error: $e');
       rethrow;

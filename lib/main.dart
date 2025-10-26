@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:provider/provider.dart';
 import 'auth/login_page.dart';
 import 'pages/home_page.dart';
@@ -13,11 +14,17 @@ import 'services/notification_service.dart';
 import 'services/portfolio_service.dart';
 import 'services/alert_service.dart';
 
+// 🔔 Background message handler (phải là top-level function)
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print('📩 Background notification: ${message.notification?.title}');
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initialize Firebase
-  // Note: You need to add google-services.json (Android) and GoogleService-Info.plist (iOS)
   try {
     await Firebase.initializeApp();
     print('✅ Firebase initialized successfully');
@@ -25,10 +32,13 @@ void main() async {
     print('❌ Firebase initialization error: $e');
   }
   
+  // 🔔 Đăng ký background message handler
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  
   // Initialize Notification Service
   try {
     await NotificationService().initialize();
-    print('✅ Notification service initialized');
+    print('✅ Notification service with FCM initialized');
   } catch (e) {
     print('❌ Notification initialization error: $e');
   }
