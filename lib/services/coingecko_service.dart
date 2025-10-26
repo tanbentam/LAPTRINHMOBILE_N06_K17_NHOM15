@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import '../models/coin.dart';
-import 'fallback_data.dart';
 
 class CoinGeckoService {
   static const String baseUrl = 'https://api.coingecko.com/api/v3';
@@ -132,12 +131,8 @@ class CoinGeckoService {
         return cachedData.map((coin) => Coin.fromJson(coin)).toList();
       }
       
-      // Nếu không có cache, trả về fallback data
-      if (e.toString().contains('429') || e.toString().contains('Failed host lookup')) {
-        print('Using fallback data due to API error: $e');
-        return FallbackData.getBasicCoins();
-      }
-      
+      // Không còn sử dụng fallback data - ép buộc xử lý lỗi ở UI layer
+      print('No cache available and API failed. Throwing error to UI layer.');
       rethrow;
     }
   }

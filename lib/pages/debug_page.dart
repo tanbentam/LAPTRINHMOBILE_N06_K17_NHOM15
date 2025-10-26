@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../services/coingecko_service.dart';
-import '../services/fallback_data.dart';
 
 class DebugPage extends StatefulWidget {
   const DebugPage({super.key});
@@ -183,20 +182,17 @@ class _DebugPageState extends State<DebugPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Dữ liệu Fallback',
+                      'Cơ Chế Cache',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text('Số lượng coins: ${FallbackData.getBasicCoins().length}'),
-                    const SizedBox(height: 8),
                     const Text(
-                      'Fallback data sẽ được sử dụng khi:\n'
-                      '• API trả về lỗi 429 (rate limit)\n'
-                      '• Không có kết nối internet\n'
-                      '• Không có cache cũ khả dụng',
+                      'Tất cả dữ liệu đều lấy từ CoinGecko API thời gian thực.\n'
+                      'Cache tự động 5 phút để tránh rate limit.\n'
+                      'Không có hardcode data.',
                       style: TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ],

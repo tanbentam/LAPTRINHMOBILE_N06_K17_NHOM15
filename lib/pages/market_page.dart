@@ -8,7 +8,6 @@ import '../services/coingecko_service.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import 'coin_detail_page.dart';
-import 'trade_page.dart';
 
 class MarketPage extends StatefulWidget {
   const MarketPage({super.key});

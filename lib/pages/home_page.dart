@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import '../models/coin.dart';
 import '../services/coingecko_service.dart';
 import '../services/auth_service.dart';
-import '../services/fallback_data.dart';
 import 'coin_detail_page.dart';
 import 'assets_page.dart';
 import '../settings/settings_page.dart';
@@ -22,7 +21,6 @@ class _HomePageState extends State<HomePage> {
   String searchQuery = '';
   List<Coin> allCoins = [];
   bool isLoading = true;
-  bool isUsingFallbackData = false;
 
   final currencyFormat = NumberFormat.currency(locale: 'en_US', symbol: '\$');
   final percentFormat = NumberFormat.decimalPattern();
@@ -52,10 +50,6 @@ class _HomePageState extends State<HomePage> {
         setState(() {
           allCoins = coins;
           isLoading = false;
-          // Kiểm tra xem có phải là fallback data không
-          isUsingFallbackData = coins.isNotEmpty && 
-              coins.length == FallbackData.getBasicCoins().length &&
-              coins.first.id == 'bitcoin';
         });
       }
     } catch (e) {
@@ -221,54 +215,42 @@ class _HomePageState extends State<HomePage> {
                   ),
                   const SizedBox(height: 10),
                   
-                  // Status indicator
+                  // Status indicator - hiển thị trạng thái kết nối API thực tế
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: isUsingFallbackData 
-                          ? Colors.orange[50] 
-                          : allCoins.isNotEmpty 
-                              ? Colors.green[50] 
-                              : Colors.grey[50],
+                      color: allCoins.isNotEmpty 
+                          ? Colors.green[50] 
+                          : Colors.grey[50],
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: isUsingFallbackData 
-                            ? Colors.orange.shade200
-                            : allCoins.isNotEmpty 
-                                ? Colors.green.shade200 
-                                : Colors.grey.shade200,
+                        color: allCoins.isNotEmpty 
+                            ? Colors.green.shade200 
+                            : Colors.grey.shade200,
                       ),
                     ),
                     child: Row(
                       children: [
                         Icon(
-                          isUsingFallbackData 
-                              ? Icons.cloud_off 
-                              : allCoins.isNotEmpty 
-                                  ? Icons.cloud_done 
-                                  : Icons.cloud_queue,
+                          allCoins.isNotEmpty 
+                              ? Icons.cloud_done 
+                              : Icons.cloud_queue,
                           size: 16,
-                          color: isUsingFallbackData 
-                              ? Colors.orange 
-                              : allCoins.isNotEmpty 
-                                  ? Colors.green 
-                                  : Colors.grey,
+                          color: allCoins.isNotEmpty 
+                              ? Colors.green 
+                              : Colors.grey,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            isUsingFallbackData 
-                                ? 'Sử dụng dữ liệu offline (${allCoins.length} coins)'
-                                : allCoins.isNotEmpty 
-                                    ? 'Dữ liệu trực tuyến (${allCoins.length} coins)'
-                                    : 'Đang tải dữ liệu...',
+                            allCoins.isNotEmpty 
+                                ? 'Dữ liệu CoinGecko API (${allCoins.length} coins)'
+                                : 'Đang tải dữ liệu từ API...',
                             style: TextStyle(
                               fontSize: 12,
-                              color: isUsingFallbackData 
-                                  ? Colors.orange[700]
-                                  : allCoins.isNotEmpty 
-                                      ? Colors.green[700] 
-                                      : Colors.grey[700],
+                              color: allCoins.isNotEmpty 
+                                  ? Colors.green[700] 
+                                  : Colors.grey[700],
                             ),
                           ),
                         ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import '../services/coingecko_service.dart';
 
 class QuickDemoActions extends StatelessWidget {
   const QuickDemoActions({super.key});
@@ -13,50 +14,60 @@ class QuickDemoActions extends StatelessWidget {
     if (authService.currentUserId == null) return;
 
     try {
+      // Lấy danh sách coins từ API để tính toán portfolio tự động
+      final coinGeckoService = Provider.of<CoinGeckoService>(context, listen: false);
+      final coins = await coinGeckoService.getCoinMarkets(perPage: 50);
+      
+      if (coins.isEmpty) {
+        throw Exception('Không thể tải dữ liệu thị trường');
+      }
+
       Map<String, double> holdings = {};
       double balance = 0;
       
+      // Tự động phân bổ portfolio dựa trên market cap và giá thực tế
       switch (type) {
         case 'beginner':
           balance = 1000;
-          holdings = {
-            'bitcoin': 0.01,
-            'ethereum': 0.5,
-          };
+          // Chỉ đầu tư vào top 2 coins
+          for (int i = 0; i < 2 && i < coins.length; i++) {
+            final coin = coins[i];
+            final allocation = (balance * (i == 0 ? 0.6 : 0.3)) / coin.currentPrice;
+            holdings[coin.id] = double.parse(allocation.toStringAsFixed(8));
+          }
           break;
+          
         case 'intermediate':
           balance = 5000;
-          holdings = {
-            'bitcoin': 0.05,
-            'ethereum': 2.0,
-            'binancecoin': 5.0,
-            'cardano': 100.0,
-          };
+          // Đầu tư vào top 4 coins với phân bổ 40%, 30%, 20%, 10%
+          final allocations = [0.35, 0.25, 0.20, 0.15];
+          for (int i = 0; i < 4 && i < coins.length; i++) {
+            final coin = coins[i];
+            final allocation = (balance * allocations[i]) / coin.currentPrice;
+            holdings[coin.id] = double.parse(allocation.toStringAsFixed(8));
+          }
           break;
+          
         case 'advanced':
           balance = 50000;
-          holdings = {
-            'bitcoin': 0.5,
-            'ethereum': 20.0,
-            'binancecoin': 50.0,
-            'solana': 100.0,
-            'cardano': 1000.0,
-            'ripple': 5000.0,
-            'dogecoin': 10000.0,
-          };
+          // Đầu tư vào top 7 coins với phân bổ đa dạng
+          final allocations = [0.30, 0.25, 0.15, 0.12, 0.08, 0.06, 0.04];
+          for (int i = 0; i < 7 && i < coins.length; i++) {
+            final coin = coins[i];
+            final allocation = (balance * allocations[i]) / coin.currentPrice;
+            holdings[coin.id] = double.parse(allocation.toStringAsFixed(8));
+          }
           break;
+          
         case 'whale':
           balance = 1000000;
-          holdings = {
-            'bitcoin': 10.0,
-            'ethereum': 500.0,
-            'binancecoin': 1000.0,
-            'solana': 5000.0,
-            'cardano': 50000.0,
-            'ripple': 100000.0,
-            'avalanche-2': 10000.0,
-            'polkadot': 20000.0,
-          };
+          // Đầu tư vào top 10 coins
+          final allocations = [0.25, 0.20, 0.15, 0.12, 0.10, 0.08, 0.05, 0.03, 0.01, 0.01];
+          for (int i = 0; i < 10 && i < coins.length; i++) {
+            final coin = coins[i];
+            final allocation = (balance * allocations[i]) / coin.currentPrice;
+            holdings[coin.id] = double.parse(allocation.toStringAsFixed(8));
+          }
           break;
       }
 
@@ -66,15 +77,19 @@ class QuickDemoActions extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Đã thiết lập portfolio $type'),
+            content: Text('Đã thiết lập portfolio $type với ${holdings.length} coins theo giá thị trường thực tế'),
             backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
           ),
         );
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e')),
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -107,7 +122,7 @@ class QuickDemoActions extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           const Text(
-            'Chọn một portfolio mẫu để demo nhanh:',
+            'Portfolio được tính toán tự động từ giá thị trường thực tế:',
             style: TextStyle(fontSize: 12, color: Colors.grey),
           ),
           const SizedBox(height: 12),

@@ -177,9 +177,8 @@ class NotificationService {
   void _onNotificationTapped(NotificationResponse details) {
     print('🔔 Notification tapped: ${details.payload}');
     
-    // TODO: Navigate to appropriate screen based on payload
-    // Bạn có thể implement navigation logic ở đây
-    // Ví dụ: Navigator.push(...) dựa vào details.payload
+    // Navigation sẽ được xử lý bởi UI layer thông qua stream hoặc callback
+    // Payload có thể chứa thông tin như: "coin_id:bitcoin", "trade_id:12345", etc.
   }
 
   /// Xử lý notification khi app được mở từ terminated state
@@ -187,14 +186,14 @@ class NotificationService {
     FirebaseMessaging.instance.getInitialMessage().then((message) {
       if (message != null) {
         print('🚀 App opened from notification: ${message.messageId}');
-        // TODO: Navigate to appropriate screen
+        // Navigation được xử lý tại main.dart hoặc home_page.dart
       }
     });
     
     // Xử lý khi app được mở từ background state
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
       print('🔓 App opened from background: ${message.messageId}');
-      // TODO: Navigate to appropriate screen
+      // Navigation được xử lý tại main.dart hoặc home_page.dart
     });
   }
 
