@@ -7,6 +7,7 @@ import 'pages/home_page.dart';
 import 'pages/market_page.dart';
 import 'pages/trade_page.dart';
 import 'pages/assets_page.dart';
+import 'pages/news_page.dart';
 import 'services/auth_service.dart';
 import 'services/firestore_service.dart';
 import 'services/coingecko_service.dart';
@@ -113,6 +114,7 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _pages = const [
     HomePage(),
     MarketPage(),
+    NewsPage(),
     TradePage(),
     AssetsPage(),
   ];
@@ -136,6 +138,7 @@ class _MainScreenState extends State<MainScreen> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Trang chủ'),
           BottomNavigationBarItem(icon: Icon(Icons.show_chart), label: 'Thị trường'),
+          BottomNavigationBarItem(icon: Icon(Icons.article), label: 'Tin tức'),
           BottomNavigationBarItem(icon: Icon(Icons.swap_horiz), label: 'Giao dịch'),
           BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet), label: 'Tài sản'),
         ],
