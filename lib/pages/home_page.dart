@@ -21,6 +21,7 @@ class _HomePageState extends State<HomePage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _searchController = TextEditingController();
   String searchQuery = '';
+  String selectedFilter = 'Trending';
   List<Coin> allCoins = [];
   bool isLoading = true;
 
@@ -85,12 +86,39 @@ class _HomePageState extends State<HomePage> {
   }
 
   List<Coin> get filteredCoins {
-    if (searchQuery.isEmpty) return allCoins;
-    
-    return allCoins.where((coin) {
-      return coin.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
-          coin.symbol.toLowerCase().contains(searchQuery.toLowerCase());
-    }).toList();
+    // Lọc theo search query
+    List<Coin> searchFiltered = searchQuery.isEmpty
+        ? allCoins
+        : allCoins.where((coin) {
+            return coin.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+                coin.symbol.toLowerCase().contains(searchQuery.toLowerCase());
+          }).toList();
+
+    // Lọc theo filter (Trending, Top Gainers, Top Losers)
+    switch (selectedFilter) {
+      case 'Top Gainers':
+        // Chỉ lấy coins tăng giá, sắp xếp từ cao đến thấp
+        searchFiltered = searchFiltered
+            .where((coin) => coin.priceChangePercentage24h > 0)
+            .toList()
+          ..sort((a, b) => b.priceChangePercentage24h.compareTo(a.priceChangePercentage24h));
+        break;
+      
+      case 'Top Losers':
+        // Chỉ lấy coins giảm giá, sắp xếp từ thấp đến cao
+        searchFiltered = searchFiltered
+            .where((coin) => coin.priceChangePercentage24h < 0)
+            .toList()
+          ..sort((a, b) => a.priceChangePercentage24h.compareTo(b.priceChangePercentage24h));
+        break;
+      
+      case 'Trending':
+      default:
+        // Giữ nguyên thứ tự market cap (top coins)
+        break;
+    }
+
+    return searchFiltered;
   }
 
   @override
@@ -320,9 +348,13 @@ class _HomePageState extends State<HomePage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
-                              'Đang thịnh hành',
-                              style: TextStyle(
+                            Text(
+                              selectedFilter == 'Trending'
+                                  ? 'Đang thịnh hành'
+                                  : selectedFilter == 'Top Gainers'
+                                      ? 'Top tăng giá 🚀'
+                                      : 'Top giảm giá 📉',
+                              style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.black,
@@ -335,7 +367,7 @@ class _HomePageState extends State<HomePage> {
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: DropdownButton<String>(
-                                value: 'Trending',
+                                value: selectedFilter,
                                 underline: const SizedBox(),
                                 icon: const Icon(Icons.keyboard_arrow_down, size: 18),
                                 style: const TextStyle(color: Colors.black, fontSize: 13),
@@ -344,7 +376,13 @@ class _HomePageState extends State<HomePage> {
                                   DropdownMenuItem(value: 'Top Gainers', child: Text('Top Gainers')),
                                   DropdownMenuItem(value: 'Top Losers', child: Text('Top Losers')),
                                 ],
-                                onChanged: (value) {},
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    setState(() {
+                                      selectedFilter = value;
+                                    });
+                                  }
+                                },
                               ),
                             ),
                           ],
