@@ -184,12 +184,6 @@ class _HomePageState extends State<HomePage> {
                             onPressed: () => _scaffoldKey.currentState?.openDrawer(),
                           ),
                           const Spacer(),
-                          IconButton(
-                            icon: const Icon(Icons.search, color: Colors.white),
-                            onPressed: () {
-                              // Scroll to search
-                            },
-                          ),
                           Stack(
                             children: [
                               IconButton(
