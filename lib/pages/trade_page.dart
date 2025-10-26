@@ -10,6 +10,7 @@ import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/notification_service.dart';
 import 'coin_detail_page.dart';
+import 'market_page.dart';
 
 class TradePage extends StatefulWidget {
   const TradePage({super.key});
@@ -157,7 +158,12 @@ class _TradePageState extends State<TradePage> with AutomaticKeepAliveClientMixi
                                   const Spacer(),
                                   TextButton(
                                     onPressed: () {
-                                      DefaultTabController.of(context).animateTo(1);
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const MarketPage(),
+                                        ),
+                                      );
                                     },
                                     child: const Text('See All →'),
                                   ),
