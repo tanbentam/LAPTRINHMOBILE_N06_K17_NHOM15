@@ -97,7 +97,7 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF1A1A1A),
       drawer: Drawer(
         backgroundColor: Colors.white,
         child: ListView(
@@ -158,27 +158,163 @@ class _HomePageState extends State<HomePage> {
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _loadCoins,
+          color: Colors.amber,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Search bar
-                  Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header Section
+                Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF1A1A1A),
+                  ),
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.menu, color: Colors.black),
-                        onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                      // Top Bar
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.menu, color: Colors.white),
+                            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            icon: const Icon(Icons.search, color: Colors.white),
+                            onPressed: () {
+                              // Scroll to search
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Thông báo')),
+                              );
+                            },
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Container(
-                          height: 40,
+                      const SizedBox(height: 10),
+                      
+                      // Welcome Text
+                      const Text(
+                        'Thị trường Crypto',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        'Theo dõi và quản lý danh mục đầu tư của bạn',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[400],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      
+                      // Quick Access Cards
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildQuickAccessCard(
+                              icon: Icons.account_balance_wallet,
+                              title: 'Tài sản',
+                              subtitle: 'Xem ví tiền',
+                              color: Colors.amber,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const AssetsPage()),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildQuickAccessCard(
+                              icon: Icons.settings,
+                              title: 'Cài đặt',
+                              subtitle: 'Tùy chỉnh',
+                              color: Colors.grey[700]!,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const SettingsPage()),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Market Section
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 10),
+                        
+                        // Trending Section Header
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Đang thịnh hành',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[100],
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: DropdownButton<String>(
+                                value: 'Trending',
+                                underline: const SizedBox(),
+                                icon: const Icon(Icons.keyboard_arrow_down, size: 18),
+                                style: const TextStyle(color: Colors.black, fontSize: 13),
+                                items: const [
+                                  DropdownMenuItem(value: 'Trending', child: Text('Trending')),
+                                  DropdownMenuItem(value: 'Top Gainers', child: Text('Top Gainers')),
+                                  DropdownMenuItem(value: 'Top Losers', child: Text('Top Losers')),
+                                ],
+                                onChanged: (value) {},
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 15),
+                        
+                        // Search bar
+                        Container(
+                          height: 45,
                           decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(10),
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: TextField(
                             controller: _searchController,
@@ -188,125 +324,165 @@ class _HomePageState extends State<HomePage> {
                                 searchQuery = value;
                               });
                             },
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               border: InputBorder.none,
                               hintText: 'Tìm kiếm coin...',
-                              hintStyle: TextStyle(color: Colors.grey),
-                              prefixIcon: Icon(Icons.search, color: Colors.grey),
+                              hintStyle: TextStyle(color: Colors.grey[500]),
+                              prefixIcon: Icon(Icons.search, color: Colors.grey[500]),
+                              suffixIcon: searchQuery.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(Icons.clear, color: Colors.grey),
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        setState(() {
+                                          searchQuery = '';
+                                        });
+                                      },
+                                    )
+                                  : null,
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      IconButton(
-                        icon: const Icon(Icons.refresh, color: Colors.black),
-                        onPressed: _loadCoins,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Thị trường Crypto',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  
-                  // Status indicator - hiển thị trạng thái kết nối API thực tế
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: allCoins.isNotEmpty 
-                          ? Colors.green[50] 
-                          : Colors.grey[50],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: allCoins.isNotEmpty 
-                            ? Colors.green.shade200 
-                            : Colors.grey.shade200,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          allCoins.isNotEmpty 
-                              ? Icons.cloud_done 
-                              : Icons.cloud_queue,
-                          size: 16,
-                          color: allCoins.isNotEmpty 
-                              ? Colors.green 
-                              : Colors.grey,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            allCoins.isNotEmpty 
-                                ? 'Dữ liệu CoinGecko API (${allCoins.length} coins)'
-                                : 'Đang tải dữ liệu từ API...',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: allCoins.isNotEmpty 
-                                  ? Colors.green[700] 
-                                  : Colors.grey[700],
-                            ),
-                          ),
-                        ),
+                        const SizedBox(height: 15),
+                        
+                        // Status indicator
                         if (!isLoading)
-                          Text(
-                            'Kéo để làm mới',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey[600],
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            margin: const EdgeInsets.only(bottom: 15),
+                            decoration: BoxDecoration(
+                              color: allCoins.isNotEmpty 
+                                  ? Colors.green[50] 
+                                  : Colors.grey[50],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: allCoins.isNotEmpty 
+                                    ? Colors.green.shade200 
+                                    : Colors.grey.shade200,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  allCoins.isNotEmpty 
+                                      ? Icons.check_circle 
+                                      : Icons.info_outline,
+                                  size: 16,
+                                  color: allCoins.isNotEmpty 
+                                      ? Colors.green 
+                                      : Colors.grey,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    allCoins.isNotEmpty 
+                                        ? 'Dữ liệu thời gian thực từ CoinGecko (${allCoins.length} coins)'
+                                        : 'Đang tải dữ liệu...',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: allCoins.isNotEmpty 
+                                          ? Colors.green[700] 
+                                          : Colors.grey[700],
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
+                        
+                        // Coins list
+                        if (isLoading)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(40.0),
+                              child: CircularProgressIndicator(
+                                color: Colors.amber,
+                              ),
+                            ),
+                          )
+                        else if (filteredCoins.isEmpty)
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(40.0),
+                              child: Column(
+                                children: [
+                                  Icon(Icons.search_off, size: 48, color: Colors.grey[400]),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    'Không tìm thấy kết quả',
+                                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        else
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: filteredCoins.length,
+                            itemBuilder: (context, index) {
+                              final coin = filteredCoins[index];
+                              return _buildCoinRow(coin);
+                            },
+                          ),
+                        const SizedBox(height: 20),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  
-                  // Coins list
-                  if (isLoading)
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(20.0),
-                        child: CircularProgressIndicator(),
-                      ),
-                    )
-                  else if (filteredCoins.isEmpty)
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(20.0),
-                        child: Text(
-                          'Không tìm thấy kết quả.',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ),
-                    )
-                  else
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      padding: const EdgeInsets.all(12),
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: filteredCoins.length,
-                        itemBuilder: (context, index) {
-                          final coin = filteredCoins[index];
-                          return _buildCoinRow(coin);
-                        },
-                      ),
-                    ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickAccessCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2A2A2A),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 28),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: Colors.grey[400],
+                fontSize: 11,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -324,42 +500,77 @@ class _HomePageState extends State<HomePage> {
           ),
         );
       },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
         child: Row(
           children: [
             // Coin logo
-            CachedNetworkImage(
-              imageUrl: coin.image,
-              width: 32,
-              height: 32,
-              placeholder: (context, url) => const CircularProgressIndicator(),
-              errorWidget: (context, url, error) => const Icon(Icons.currency_bitcoin),
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                shape: BoxShape.circle,
+              ),
+              padding: const EdgeInsets.all(6),
+              child: CachedNetworkImage(
+                imageUrl: coin.image,
+                placeholder: (context, url) => const CircularProgressIndicator(strokeWidth: 2),
+                errorWidget: (context, url, error) => const Icon(Icons.currency_bitcoin, size: 24),
+              ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             // Coin name & symbol
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    coin.symbol,
+                    coin.symbol.toUpperCase(),
                     style: const TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                      fontSize: 15,
                     ),
                   ),
+                  const SizedBox(height: 3),
                   Text(
                     coin.name,
-                    style: const TextStyle(
-                      color: Colors.grey,
+                    style: TextStyle(
+                      color: Colors.grey[600],
                       fontSize: 12,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
+            const SizedBox(width: 10),
+            // Mini chart placeholder (could add real chart later)
+            Container(
+              width: 60,
+              height: 30,
+              child: Icon(
+                isUp ? Icons.trending_up : Icons.trending_down,
+                color: isUp ? Colors.green : Colors.red,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 10),
             // Price & change
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -369,13 +580,14 @@ class _HomePageState extends State<HomePage> {
                   style: const TextStyle(
                     color: Colors.black,
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: 15,
                   ),
                 ),
+                const SizedBox(height: 4),
                 Container(
                   decoration: BoxDecoration(
-                    color: isUp ? Colors.green[100] : Colors.red[100],
-                    borderRadius: BorderRadius.circular(5),
+                    color: isUp ? Colors.green[50] : Colors.red[50],
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   child: Text(
