@@ -222,9 +222,12 @@ class _AssetsPageState extends State<AssetsPage> {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            Text(
-                              "Số dư: ${currencyFormat.format(user.balance)}",
-                              style: const TextStyle(color: Colors.grey, fontSize: 14),
+                            Flexible(
+                              child: Text(
+                                "Số dư: ${currencyFormat.format(user.balance)}",
+                                style: const TextStyle(color: Colors.grey, fontSize: 14),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                             const SizedBox(width: 8),
                             InkWell(
@@ -244,6 +247,7 @@ class _AssetsPageState extends State<AssetsPage> {
                                   border: Border.all(color: Colors.green),
                                 ),
                                 child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(Icons.add, size: 14, color: Colors.green),
                                     SizedBox(width: 4),
@@ -259,27 +263,27 @@ class _AssetsPageState extends State<AssetsPage> {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 16),
-                            if (stats.totalProfit != 0)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: stats.totalProfit >= 0 
-                                      ? Colors.green.withOpacity(0.1) 
-                                      : Colors.red.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  '${stats.totalProfit >= 0 ? '+' : ''}${currencyFormat.format(stats.totalProfit)} (${stats.profitPercentage.toStringAsFixed(2)}%)',
-                                  style: TextStyle(
-                                    color: stats.totalProfit >= 0 ? Colors.green : Colors.red,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
                           ],
                         ),
+                        const SizedBox(height: 8),
+                        if (stats.totalProfit != 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: stats.totalProfit >= 0 
+                                  ? Colors.green.withOpacity(0.1) 
+                                  : Colors.red.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '${stats.totalProfit >= 0 ? '+' : ''}${currencyFormat.format(stats.totalProfit)} (${stats.profitPercentage.toStringAsFixed(2)}%)',
+                              style: TextStyle(
+                                color: stats.totalProfit >= 0 ? Colors.green : Colors.red,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
                         const SizedBox(height: 24),
 
                         // Portfolio Analytics
