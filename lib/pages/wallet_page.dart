@@ -6,6 +6,7 @@ import '../models/deposit_transaction.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import 'deposit_page.dart';
+import 'withdraw_page.dart';
 
 class WalletPage extends StatefulWidget {
   const WalletPage({super.key});
@@ -86,7 +87,7 @@ class _WalletPageState extends State<WalletPage> {
                               'Rút tiền',
                               Icons.remove_circle,
                               Colors.orange,
-                              () => _showWithdrawComingSoon(),
+                              () => _navigateToWithdraw(),
                             ),
                           ),
                         ],
@@ -435,28 +436,14 @@ class _WalletPageState extends State<WalletPage> {
     }
   }
 
-  void _showWithdrawComingSoon() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: const [
-            Icon(Icons.info_outline, color: Colors.blue),
-            SizedBox(width: 8),
-            Text('Thông báo'),
-          ],
-        ),
-        content: const Text(
-          'Tính năng rút tiền sẽ được cập nhật trong phiên bản tiếp theo.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Đã hiểu'),
-          ),
-        ],
-      ),
+  Future<void> _navigateToWithdraw() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const WithdrawPage()),
     );
+
+    if (result == true && mounted) {
+      // Đã rút tiền thành công, stream sẽ tự động cập nhật
+    }
   }
 }

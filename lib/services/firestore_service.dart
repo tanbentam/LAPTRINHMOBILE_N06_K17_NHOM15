@@ -313,6 +313,8 @@ class FirestoreService {
     required String uid,
     required double amount,
     required String paymentMethod,
+    String? accountNumber,
+    String? accountName,
   }) async {
     try {
       final userDoc = _db.collection('users').doc(uid);
@@ -330,6 +332,11 @@ class FirestoreService {
 
       // Create withdraw transaction record in separate collection
       final withdrawDoc = _db.collection('deposit_transactions').doc();
+      
+      final notes = accountNumber != null && accountName != null
+          ? 'Withdraw via $paymentMethod to $accountName ($accountNumber)'
+          : 'Withdraw via $paymentMethod';
+      
       final withdraw = DepositTransaction(
         id: withdrawDoc.id,
         userId: uid,
@@ -337,13 +344,13 @@ class FirestoreService {
         amount: amount,
         timestamp: DateTime.now(),
         paymentMethod: paymentMethod,
-        status: 'completed',
-        notes: 'Withdraw via $paymentMethod',
+        status: 'pending', // Withdraw starts as pending
+        notes: notes,
       );
       
       await withdrawDoc.set(withdraw.toJson());
 
-      print('✅ Withdraw completed: \$${amount} USD via $paymentMethod');
+      print('✅ Withdraw requested: \$${amount} USD via $paymentMethod');
     } catch (e) {
       print('❌ Withdraw error: $e');
       rethrow;

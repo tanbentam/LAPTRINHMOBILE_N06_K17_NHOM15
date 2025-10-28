@@ -4,11 +4,17 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/coin.dart';
+import '../models/user_model.dart';
 import '../services/coingecko_service.dart';
 import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
 import 'coin_detail_page.dart';
 import 'assets_page.dart';
 import 'notification_center_page.dart';
+import 'deposit_page.dart';
+import 'withdraw_page.dart';
+import 'market_page.dart';
+import 'trade_page.dart';
 import '../settings/settings_page.dart';
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -289,6 +295,11 @@ class _HomePageState extends State<HomePage> {
                       ),
                       const SizedBox(height: 20),
                       
+                      // 💰 Quick Actions - Nạp, Rút, Mua, Bán
+                      _buildQuickActionsSection(context, authService),
+                      
+                      const SizedBox(height: 20),
+                      
                       // Quick Access Cards
                       Row(
                         children: [
@@ -514,6 +525,192 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  // 💰 Quick Actions Section - Nạp, Rút, Mua, Bán
+  Widget _buildQuickActionsSection(BuildContext context, AuthService authService) {
+    final firestoreService = Provider.of<FirestoreService>(context);
+    
+    return StreamBuilder<UserModel?>(
+      stream: firestoreService.streamUserData(authService.currentUserId!),
+      builder: (context, snapshot) {
+        final balance = snapshot.data?.balance ?? 0.0;
+        
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.deepPurple.shade800,
+                Colors.deepPurple.shade600,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.deepPurple.withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Số dư khả dụng',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        currencyFormat.format(balance),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.account_balance_wallet,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              
+              // Action Buttons Grid
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildQuickActionButton(
+                      context: context,
+                      icon: Icons.add_circle_outline,
+                      label: 'Nạp tiền',
+                      color: Colors.green,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const DepositPage()),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildQuickActionButton(
+                      context: context,
+                      icon: Icons.remove_circle_outline,
+                      label: 'Rút tiền',
+                      color: Colors.orange,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const WithdrawPage()),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildQuickActionButton(
+                      context: context,
+                      icon: Icons.shopping_cart_outlined,
+                      label: 'Mua Coin',
+                      color: Colors.blue,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const MarketPage()),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildQuickActionButton(
+                      context: context,
+                      icon: Icons.sell_outlined,
+                      label: 'Bán Coin',
+                      color: Colors.red,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const TradePage()),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildQuickActionButton({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );
