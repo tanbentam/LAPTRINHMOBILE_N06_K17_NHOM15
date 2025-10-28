@@ -344,13 +344,13 @@ class FirestoreService {
         amount: amount,
         timestamp: DateTime.now(),
         paymentMethod: paymentMethod,
-        status: 'pending', // Withdraw starts as pending
+        status: 'completed',
         notes: notes,
       );
       
       await withdrawDoc.set(withdraw.toJson());
 
-      print('✅ Withdraw requested: \$${amount} USD via $paymentMethod');
+      print('✅ Withdraw completed: \$${amount} USD via $paymentMethod');
     } catch (e) {
       print('❌ Withdraw error: $e');
       rethrow;
