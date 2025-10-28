@@ -14,6 +14,7 @@ import 'notification_center_page.dart';
 import 'deposit_page.dart';
 import 'withdraw_page.dart';
 import '../settings/settings_page.dart';
+import 'wallet_page.dart';
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -569,7 +570,14 @@ class _HomePageState extends State<HomePage> {
                       children: [
                         Row(
                           children: [
-                            Container(
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const WalletPage()),
+                              );
+                            },
+                            child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(0.2),
@@ -591,7 +599,8 @@ class _HomePageState extends State<HomePage> {
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ],
@@ -618,7 +627,14 @@ class _HomePageState extends State<HomePage> {
                       ],
                     ),
                   ),
-                  Container(
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const WalletPage()),
+                    );
+                  },
+                  child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.15),
@@ -632,13 +648,14 @@ class _HomePageState extends State<HomePage> {
                       Icons.account_balance_wallet_rounded,
                       color: Colors.white,
                       size: 32,
+                      ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-              
-              // Action Buttons - Chỉ Nạp và Rút
+            
+            // Action Buttons - Chỉ Nạp và Rút
               Row(
                 children: [
                   Expanded(
