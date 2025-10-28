@@ -15,42 +15,42 @@ class DepositPage extends StatefulWidget {
 class _DepositPageState extends State<DepositPage> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
-  final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
+  final currencyFormat = NumberFormat.currency(locale: 'en_US', symbol: '\$');
   
   String _selectedMethod = 'momo';
   bool _isProcessing = false;
   
   final Map<String, Map<String, dynamic>> _paymentMethods = {
     'momo': {
-      'name': 'Ví MoMo',
+      'name': 'MoMo Wallet',
       'icon': Icons.account_balance_wallet,
       'color': Colors.pink,
-      'minAmount': 10000.0,
-      'maxAmount': 50000000.0,
+      'minAmount': 10.0,
+      'maxAmount': 50000.0,
     },
     'visa': {
-      'name': 'Thẻ Visa/MasterCard',
+      'name': 'Visa/MasterCard',
       'icon': Icons.credit_card,
       'color': Colors.blue,
-      'minAmount': 50000.0,
-      'maxAmount': 100000000.0,
+      'minAmount': 50.0,
+      'maxAmount': 100000.0,
     },
     'bank_transfer': {
-      'name': 'Chuyển khoản ngân hàng',
+      'name': 'Bank Transfer',
       'icon': Icons.account_balance,
       'color': Colors.green,
-      'minAmount': 100000.0,
-      'maxAmount': 500000000.0,
+      'minAmount': 100.0,
+      'maxAmount': 500000.0,
     },
   };
 
   final List<double> _quickAmounts = [
-    100000,
-    500000,
-    1000000,
-    2000000,
-    5000000,
-    10000000,
+    100,
+    500,
+    1000,
+    2000,
+    5000,
+    10000,
   ];
 
   @override
@@ -349,7 +349,7 @@ class _DepositPageState extends State<DepositPage> {
                     Icons.attach_money,
                     color: selectedMethodData['color'],
                   ),
-                  suffixText: 'VNĐ',
+                  suffixText: 'USD',
                   suffixStyle: TextStyle(
                     fontSize: 16,
                     color: Colors.grey[600],
@@ -492,11 +492,9 @@ class _DepositPageState extends State<DepositPage> {
   }
 
   String _formatQuickAmount(double amount) {
-    if (amount >= 1000000) {
-      return '${(amount / 1000000).toStringAsFixed(0)} triệu';
-    } else if (amount >= 1000) {
-      return '${(amount / 1000).toStringAsFixed(0)}K';
+    if (amount >= 1000) {
+      return '\$${(amount / 1000).toStringAsFixed(0)}K';
     }
-    return amount.toStringAsFixed(0);
+    return '\$${amount.toStringAsFixed(0)}';
   }
 }

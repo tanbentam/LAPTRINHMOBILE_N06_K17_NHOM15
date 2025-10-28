@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../models/user_model.dart';
-import '../models/transaction.dart';
+import '../models/deposit_transaction.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import 'deposit_page.dart';
@@ -15,7 +15,7 @@ class WalletPage extends StatefulWidget {
 }
 
 class _WalletPageState extends State<WalletPage> {
-  final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
+  final currencyFormat = NumberFormat.currency(locale: 'en_US', symbol: '\$');
 
   @override
   Widget build(BuildContext context) {
@@ -48,15 +48,10 @@ class _WalletPageState extends State<WalletPage> {
 
           final user = userSnapshot.data!;
 
-          return StreamBuilder<List<Transaction>>(
-            stream: firestoreService.getUserTransactions(user.uid),
+          return StreamBuilder<List<DepositTransaction>>(
+            stream: firestoreService.getUserDepositTransactions(user.uid),
             builder: (context, txSnapshot) {
-              final allTransactions = txSnapshot.data ?? [];
-              
-              // Lọc các giao dịch deposit và withdraw
-              final walletTransactions = allTransactions
-                  .where((tx) => tx.type == 'deposit' || tx.type == 'withdraw')
-                  .toList();
+              final depositTransactions = txSnapshot.data ?? [];
 
               return RefreshIndicator(
                 onRefresh: () async {
@@ -120,10 +115,10 @@ class _WalletPageState extends State<WalletPage> {
                       ),
                       const SizedBox(height: 12),
 
-                      if (walletTransactions.isEmpty)
+                      if (depositTransactions.isEmpty)
                         _buildEmptyState()
                       else
-                        ...walletTransactions.take(10).map(
+                        ...depositTransactions.take(10).map(
                               (tx) => _buildTransactionCard(tx),
                             ),
                     ],
@@ -180,7 +175,7 @@ class _WalletPageState extends State<WalletPage> {
                     Icon(Icons.account_balance_wallet, color: Colors.white, size: 14),
                     SizedBox(width: 4),
                     Text(
-                      'VNĐ',
+                      'USD',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 12,
@@ -270,11 +265,11 @@ class _WalletPageState extends State<WalletPage> {
     );
   }
 
-  Widget _buildTransactionCard(Transaction tx) {
-    final isDeposit = tx.type == 'deposit';
+  Widget _buildTransactionCard(DepositTransaction tx) {
+    final isDeposit = tx.isDeposit;
     final color = isDeposit ? Colors.green : Colors.orange;
     final icon = isDeposit ? Icons.arrow_downward : Icons.arrow_upward;
-    final methodName = _getPaymentMethodName(tx.paymentMethod ?? 'unknown');
+    final methodName = _getPaymentMethodName(tx.paymentMethod);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -320,13 +315,13 @@ class _WalletPageState extends State<WalletPage> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: _getStatusColor(tx.status ?? 'completed').withOpacity(0.1),
+                        color: _getStatusColor(tx.status).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        _getStatusText(tx.status ?? 'completed'),
+                        _getStatusText(tx.status),
                         style: TextStyle(
-                          color: _getStatusColor(tx.status ?? 'completed'),
+                          color: _getStatusColor(tx.status),
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                         ),
@@ -393,13 +388,13 @@ class _WalletPageState extends State<WalletPage> {
   String _getPaymentMethodName(String method) {
     switch (method) {
       case 'momo':
-        return 'Ví MoMo';
+        return 'MoMo Wallet';
       case 'visa':
-        return 'Thẻ Visa/MasterCard';
+        return 'Visa/MasterCard';
       case 'bank_transfer':
-        return 'Chuyển khoản ngân hàng';
+        return 'Bank Transfer';
       default:
-        return 'Phương thức khác';
+        return 'Other Method';
     }
   }
 
@@ -419,13 +414,13 @@ class _WalletPageState extends State<WalletPage> {
   String _getStatusText(String status) {
     switch (status) {
       case 'completed':
-        return 'Thành công';
+        return 'Completed';
       case 'pending':
-        return 'Đang xử lý';
+        return 'Processing';
       case 'failed':
-        return 'Thất bại';
+        return 'Failed';
       default:
-        return 'Không xác định';
+        return 'Unknown';
     }
   }
 

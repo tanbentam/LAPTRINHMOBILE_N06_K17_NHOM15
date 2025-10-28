@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
 import '../models/transaction.dart' as model;
+import '../models/deposit_transaction.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -269,7 +270,7 @@ class FirestoreService {
     });
   }
 
-  // Deposit money
+  // Deposit money - Save to separate collection
   Future<void> depositMoney({
     required String uid,
     required double amount,
@@ -285,33 +286,29 @@ class FirestoreService {
       final newBalance = userData.balance + amount;
       await userDoc.update({'balance': newBalance});
 
-      // Create deposit transaction record
-      final transactionDoc = _db.collection('transactions').doc();
-      final transaction = model.Transaction(
-        id: transactionDoc.id,
+      // Create deposit transaction record in separate collection
+      final depositDoc = _db.collection('deposit_transactions').doc();
+      final deposit = DepositTransaction(
+        id: depositDoc.id,
         userId: uid,
-        coinId: 'VND', // Virtual coin for deposit
-        coinSymbol: 'VND',
         type: 'deposit',
         amount: amount,
-        price: 1.0, // VND to VND
-        total: amount,
         timestamp: DateTime.now(),
         paymentMethod: paymentMethod,
         status: 'completed',
-        notes: 'Nạp tiền qua $paymentMethod',
+        notes: 'Deposit via $paymentMethod',
       );
       
-      await transactionDoc.set(transaction.toJson());
+      await depositDoc.set(deposit.toJson());
 
-      print('✅ Deposit completed: ${amount} VND via $paymentMethod');
+      print('✅ Deposit completed: \$${amount} USD via $paymentMethod');
     } catch (e) {
       print('❌ Deposit error: $e');
       rethrow;
     }
   }
 
-  // Withdraw money (optional for future)
+  // Withdraw money - Save to separate collection
   Future<void> withdrawMoney({
     required String uid,
     required double amount,
@@ -331,29 +328,39 @@ class FirestoreService {
       final newBalance = userData.balance - amount;
       await userDoc.update({'balance': newBalance});
 
-      // Create withdraw transaction record
-      final transactionDoc = _db.collection('transactions').doc();
-      final transaction = model.Transaction(
-        id: transactionDoc.id,
+      // Create withdraw transaction record in separate collection
+      final withdrawDoc = _db.collection('deposit_transactions').doc();
+      final withdraw = DepositTransaction(
+        id: withdrawDoc.id,
         userId: uid,
-        coinId: 'VND',
-        coinSymbol: 'VND',
         type: 'withdraw',
         amount: amount,
-        price: 1.0,
-        total: amount,
         timestamp: DateTime.now(),
         paymentMethod: paymentMethod,
         status: 'completed',
-        notes: 'Rút tiền qua $paymentMethod',
+        notes: 'Withdraw via $paymentMethod',
       );
       
-      await transactionDoc.set(transaction.toJson());
+      await withdrawDoc.set(withdraw.toJson());
 
-      print('✅ Withdraw completed: ${amount} VND via $paymentMethod');
+      print('✅ Withdraw completed: \$${amount} USD via $paymentMethod');
     } catch (e) {
       print('❌ Withdraw error: $e');
       rethrow;
     }
+  }
+
+  // Get user deposit/withdraw transactions
+  Stream<List<DepositTransaction>> getUserDepositTransactions(String uid) {
+    return _db
+        .collection('deposit_transactions')
+        .where('userId', isEqualTo: uid)
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => DepositTransaction.fromJson(doc.data()))
+          .toList();
+    });
   }
 }
