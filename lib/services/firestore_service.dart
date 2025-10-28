@@ -268,4 +268,92 @@ class FirestoreService {
           .toList();
     });
   }
+
+  // Deposit money
+  Future<void> depositMoney({
+    required String uid,
+    required double amount,
+    required String paymentMethod,
+  }) async {
+    try {
+      final userDoc = _db.collection('users').doc(uid);
+      final userData = await getUserData(uid);
+      
+      if (userData == null) throw Exception('User not found');
+
+      // Update balance
+      final newBalance = userData.balance + amount;
+      await userDoc.update({'balance': newBalance});
+
+      // Create deposit transaction record
+      final transactionDoc = _db.collection('transactions').doc();
+      final transaction = model.Transaction(
+        id: transactionDoc.id,
+        userId: uid,
+        coinId: 'VND', // Virtual coin for deposit
+        coinSymbol: 'VND',
+        type: 'deposit',
+        amount: amount,
+        price: 1.0, // VND to VND
+        total: amount,
+        timestamp: DateTime.now(),
+        paymentMethod: paymentMethod,
+        status: 'completed',
+        notes: 'Nạp tiền qua $paymentMethod',
+      );
+      
+      await transactionDoc.set(transaction.toJson());
+
+      print('✅ Deposit completed: ${amount} VND via $paymentMethod');
+    } catch (e) {
+      print('❌ Deposit error: $e');
+      rethrow;
+    }
+  }
+
+  // Withdraw money (optional for future)
+  Future<void> withdrawMoney({
+    required String uid,
+    required double amount,
+    required String paymentMethod,
+  }) async {
+    try {
+      final userDoc = _db.collection('users').doc(uid);
+      final userData = await getUserData(uid);
+      
+      if (userData == null) throw Exception('User not found');
+      
+      if (userData.balance < amount) {
+        throw Exception('Insufficient balance');
+      }
+
+      // Update balance
+      final newBalance = userData.balance - amount;
+      await userDoc.update({'balance': newBalance});
+
+      // Create withdraw transaction record
+      final transactionDoc = _db.collection('transactions').doc();
+      final transaction = model.Transaction(
+        id: transactionDoc.id,
+        userId: uid,
+        coinId: 'VND',
+        coinSymbol: 'VND',
+        type: 'withdraw',
+        amount: amount,
+        price: 1.0,
+        total: amount,
+        timestamp: DateTime.now(),
+        paymentMethod: paymentMethod,
+        status: 'completed',
+        notes: 'Rút tiền qua $paymentMethod',
+      );
+      
+      await transactionDoc.set(transaction.toJson());
+
+      print('✅ Withdraw completed: ${amount} VND via $paymentMethod');
+    } catch (e) {
+      print('❌ Withdraw error: $e');
+      rethrow;
+    }
+  }
 }

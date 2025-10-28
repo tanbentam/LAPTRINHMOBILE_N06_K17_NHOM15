@@ -50,39 +50,79 @@ class HistoryPage extends StatelessWidget {
             itemCount: transactions.length,
             itemBuilder: (context, index) {
               final transaction = transactions[index];
+              
+              // Xác định loại giao dịch
+              final isDeposit = transaction.type == 'deposit';
+              final isWithdraw = transaction.type == 'withdraw';
               final isBuy = transaction.type == 'buy';
+
+              // Màu sắc và icon theo loại giao dịch
+              Color backgroundColor;
+              Color iconColor;
+              IconData iconData;
+              String title;
+
+              if (isDeposit) {
+                backgroundColor = Colors.green[100]!;
+                iconColor = Colors.green;
+                iconData = Icons.add_circle;
+                title = 'Nạp tiền';
+              } else if (isWithdraw) {
+                backgroundColor = Colors.orange[100]!;
+                iconColor = Colors.orange;
+                iconData = Icons.remove_circle;
+                title = 'Rút tiền';
+              } else if (isBuy) {
+                backgroundColor = Colors.blue[100]!;
+                iconColor = Colors.blue;
+                iconData = Icons.arrow_downward;
+                title = 'Mua ${transaction.coinSymbol}';
+              } else {
+                backgroundColor = Colors.red[100]!;
+                iconColor = Colors.red;
+                iconData = Icons.arrow_upward;
+                title = 'Bán ${transaction.coinSymbol}';
+              }
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: isBuy ? Colors.green[100] : Colors.red[100],
-                    child: Icon(
-                      isBuy ? Icons.arrow_downward : Icons.arrow_upward,
-                      color: isBuy ? Colors.green : Colors.red,
-                    ),
+                    backgroundColor: backgroundColor,
+                    child: Icon(iconData, color: iconColor),
                   ),
                   title: Text(
-                    '${isBuy ? 'Mua' : 'Bán'} ${transaction.coinSymbol}',
+                    title,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 4),
-                      Text('Số lượng: ${transaction.amount} ${transaction.coinSymbol}'),
-                      Text('Giá: ${currencyFormat.format(transaction.price)}'),
-                      Text('Tổng: ${currencyFormat.format(transaction.total)}'),
+                      if (isDeposit || isWithdraw) ...[
+                        Text('Số tiền: ${currencyFormat.format(transaction.amount)} VNĐ'),
+                        if (transaction.paymentMethod != null)
+                          Text('Phương thức: ${_getPaymentMethodName(transaction.paymentMethod!)}'),
+                        if (transaction.status != null)
+                          Text(
+                            'Trạng thái: ${_getStatusText(transaction.status!)}',
+                            style: TextStyle(
+                              color: _getStatusColor(transaction.status!),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                      ] else ...[
+                        Text('Số lượng: ${transaction.amount} ${transaction.coinSymbol}'),
+                        Text('Giá: ${currencyFormat.format(transaction.price)}'),
+                        Text('Tổng: ${currencyFormat.format(transaction.total)}'),
+                      ],
                       Text(
                         dateFormat.format(transaction.timestamp),
                         style: const TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                     ],
                   ),
-                  trailing: Icon(
-                    isBuy ? Icons.add_circle : Icons.remove_circle,
-                    color: isBuy ? Colors.green : Colors.red,
-                  ),
+                  trailing: Icon(iconData, color: iconColor),
                 ),
               );
             },
@@ -90,5 +130,44 @@ class HistoryPage extends StatelessWidget {
         },
       ),
     );
+  }
+
+  String _getPaymentMethodName(String method) {
+    switch (method) {
+      case 'momo':
+        return 'Ví MoMo';
+      case 'visa':
+        return 'Thẻ Visa/MasterCard';
+      case 'bank_transfer':
+        return 'Chuyển khoản ngân hàng';
+      default:
+        return 'Phương thức khác';
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'completed':
+        return Colors.green;
+      case 'pending':
+        return Colors.orange;
+      case 'failed':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _getStatusText(String status) {
+    switch (status) {
+      case 'completed':
+        return 'Thành công';
+      case 'pending':
+        return 'Đang xử lý';
+      case 'failed':
+        return 'Thất bại';
+      default:
+        return 'Không xác định';
+    }
   }
 }

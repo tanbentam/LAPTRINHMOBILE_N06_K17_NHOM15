@@ -3,7 +3,7 @@ class Transaction {
   final String userId;
   final String coinId;
   final String coinSymbol;
-  final String type; // 'buy' or 'sell'
+  final String type; // 'buy', 'sell', 'deposit', 'withdraw'
   final double amount;
   final double price;
   final double total;
@@ -12,6 +12,8 @@ class Transaction {
   final double? takeProfit;  // Giá chốt lời (optional)
   final bool autoSellEnabled;
   final String? notes;       // Ghi chú
+  final String? paymentMethod; // 'momo', 'visa', 'bank_transfer' (for deposit/withdraw)
+  final String? status;      // 'pending', 'completed', 'failed' (for deposit/withdraw)
 
   Transaction({
     required this.id,
@@ -27,6 +29,8 @@ class Transaction {
     this.takeProfit,
     this.autoSellEnabled = false,
     this.notes,
+    this.paymentMethod,
+    this.status,
   });
 
   factory Transaction.fromJson(Map<String, dynamic> json) {
@@ -44,6 +48,8 @@ class Transaction {
       takeProfit: json['takeProfit'] != null ? (json['takeProfit'] as num).toDouble() : null,
       autoSellEnabled: json['autoSellEnabled'] ?? false,
       notes: json['notes'],
+      paymentMethod: json['paymentMethod'],
+      status: json['status'],
     );
   }
 
@@ -62,6 +68,8 @@ class Transaction {
       'takeProfit': takeProfit,
       'autoSellEnabled': autoSellEnabled,
       'notes': notes,
+      'paymentMethod': paymentMethod,
+      'status': status,
     };
   }
 }

@@ -13,6 +13,8 @@ import '../services/portfolio_service.dart';
 import 'history_page.dart';
 import 'simulate_balance_page.dart';
 import 'coin_detail_page.dart';
+import 'deposit_page.dart';
+import 'wallet_page.dart';
 
 class AssetsPage extends StatefulWidget {
   const AssetsPage({super.key});
@@ -132,6 +134,16 @@ class _AssetsPageState extends State<AssetsPage> {
               onPressed: _loadCoins,
             ),
           IconButton(
+            icon: const Icon(Icons.account_balance_wallet, color: Colors.green),
+            tooltip: 'Ví của tôi',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const WalletPage()),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.tune, color: Colors.orange),
             tooltip: 'Giả lập số dư',
             onPressed: () {
@@ -213,6 +225,39 @@ class _AssetsPageState extends State<AssetsPage> {
                             Text(
                               "Số dư: ${currencyFormat.format(user.balance)}",
                               style: const TextStyle(color: Colors.grey, fontSize: 14),
+                            ),
+                            const SizedBox(width: 8),
+                            InkWell(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const DepositPage(),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: Colors.green),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Icon(Icons.add, size: 14, color: Colors.green),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Nạp tiền',
+                                      style: TextStyle(
+                                        color: Colors.green,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                             const SizedBox(width: 16),
                             if (stats.totalProfit != 0)
