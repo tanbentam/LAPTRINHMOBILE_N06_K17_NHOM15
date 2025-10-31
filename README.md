@@ -951,7 +951,7 @@ Tài khoản mới sẽ có:
 
 ## 10. Cấu trúc Database (Firestore)
 
-### 10.1. Collections
+### 10.1. Cấu trúc Database (Trong Firestore gọi là Collections)
 
 ```
 users/
@@ -1010,49 +1010,17 @@ notification_settings/
 │   └── newsNotifications: boolean
 ```
 
-### 10.2. Indexes
+### 10.2. Sơ đồ cấu trúc Database
+
+![alt text](images/database-diagram.png)
+
+
+### 10.3. Indexes
 
 Recommended indexes for performance:
 - `transactions`: (userId, timestamp DESC)
 - `deposit_transactions`: (userId, timestamp DESC)
 - `notifications`: (userId, isRead, timestamp DESC)
-
-### 10.3. Security Rules
-
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Users
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Transactions
-    match /transactions/{transactionId} {
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-    }
-    
-    // Deposit Transactions
-    match /deposit_transactions/{transactionId} {
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-    }
-    
-    // Notifications
-    match /notifications/{notificationId} {
-      allow read, update: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null;
-    }
-    
-    // Notification Settings
-    match /notification_settings/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}
-```
 
 ---
 
