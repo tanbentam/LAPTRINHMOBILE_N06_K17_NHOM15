@@ -488,7 +488,68 @@ classDiagram
     NotificationService ..> NotificationItem : delivers
 ```
 
-### 7.2. Activity Diagram - Quy trình mua coin
+### 7.2. Activity Diagram - Quy trình đăng nhập
+
+```mermaid
+flowchart TD
+    Start([Mở App]) --> CheckAuth{Đã đăng nhập?}
+    CheckAuth -->|Có| MainNav[Main Navigation]
+    CheckAuth -->|Không| LoginPage[Login Page]
+    
+    LoginPage --> LoginOrRegister{Chọn hành động}
+    LoginOrRegister -->|Đăng nhập| Login[Nhập email/password]
+    LoginOrRegister -->|Đăng ký| Register[Tạo tài khoản mới]
+    
+    Login --> ValidateLogin{Thông tin hợp lệ?}
+    ValidateLogin -->|Không| LoginError[Hiển thị lỗi]
+    LoginError --> LoginPage
+    ValidateLogin -->|Có| FirebaseAuth[Firebase Authentication]
+    
+    Register --> ValidateRegister{Email/password hợp lệ?}
+    ValidateRegister -->|Không| RegisterError[Hiển thị lỗi]
+    RegisterError --> LoginPage
+    ValidateRegister -->|Có| CreateAccount[Tạo tài khoản Firebase]
+    
+    FirebaseAuth --> AuthSuccess{Thành công?}
+    CreateAccount --> AuthSuccess
+    AuthSuccess -->|Không| LoginError
+    AuthSuccess -->|Có| CreateUserDoc[Tạo user document Firestore]
+    CreateUserDoc --> MainNav
+    
+    MainNav --> End([Vào App])
+```
+
+### 7.3. Activity Diagram - Quy trình nạp tiền
+```mermaid
+flowchart TD
+    Start([Nhấn Nạp tiền]) --> DepositPage[Deposit Page]
+    DepositPage --> SelectMethod{Chọn phương thức}
+    
+    SelectMethod -->|MoMo| SetMoMo[Min: $10, Max: $50K]
+    SelectMethod -->|Visa/MC| SetVisa[Min: $50, Max: $100K]
+    SelectMethod -->|Bank| SetBank[Min: $100, Max: $500K]
+    
+    SetMoMo --> EnterAmount[Nhập số tiền]
+    SetVisa --> EnterAmount
+    SetBank --> EnterAmount
+    
+    EnterAmount --> QuickAmount{Chọn số tiền nhanh?}
+    QuickAmount -->|Có| SelectQuick[100/500/1K/2K/5K/10K]
+    QuickAmount -->|Không| ValidateAmount{Số tiền hợp lệ?}
+    SelectQuick --> ValidateAmount
+    
+    ValidateAmount -->|Không| ShowError[Hiển thị lỗi validation]
+    ShowError --> EnterAmount
+    ValidateAmount -->|Có| ConfirmDeposit[Xác nhận nạp tiền]
+    
+    ConfirmDeposit --> ProcessPayment[Mô phỏng thanh toán 2s]
+    ProcessPayment --> UpdateBalance[Cập nhật số dư]
+    UpdateBalance --> SaveTransaction[Lưu DepositTransaction]
+    SaveTransaction --> SendNotification[Gửi thông báo]
+    SendNotification --> ShowSuccess[Hiển thị thành công]
+    ShowSuccess --> End([Hoàn tất])
+```
+### 7.4. Activity Diagram - Quy trình mua coin
 
 ```mermaid
 flowchart TB
@@ -530,7 +591,7 @@ flowchart TB
     AnotherTrade -->|Không| End([Kết thúc])
 ```
 
-### 7.3. Activity Diagram - Quản lý Portfolio
+### 7.5. Activity Diagram - Quản lý Portfolio
 
 ```mermaid
 flowchart TB
@@ -568,8 +629,67 @@ flowchart TB
     NavigateHistory --> End
     NavigateSimulate --> End([Kết thúc])
 ```
-
-### 7.4. State Diagram - Vòng đời giao dịch
+### 7.6. Activity Diagram - Quy trình gửi thông báo
+```mermaid
+flowchart TD
+    Start([Nhấn icon bell]) --> LoadNotifications[Tải notifications từ Firestore]
+    LoadNotifications --> DisplayList[Hiển thị danh sách]
+    
+    DisplayList --> UserAction{Hành động?}
+    UserAction -->|Filter| FilterType[Lọc theo type]
+    UserAction -->|Đọc| MarkAsRead[Đánh dấu đã đọc]
+    UserAction -->|Xóa| DeleteNotification[Xóa thông báo]
+    UserAction -->|Xóa tất cả| DeleteAll[Xóa tất cả]
+    UserAction -->|Pull refresh| RefreshList[Làm mới danh sách]
+    
+    FilterType --> UpdateDisplay[Cập nhật hiển thị]
+    UpdateDisplay --> DisplayList
+    
+    MarkAsRead --> UpdateFirestore[Cập nhật isRead = true]
+    DeleteNotification --> RemoveFromFirestore[Xóa khỏi Firestore]
+    DeleteAll --> ClearAllNotifications[Xóa tất cả notifications]
+    RefreshList --> LoadNotifications
+    
+    UpdateFirestore --> RefreshUI[Refresh UI]
+    RemoveFromFirestore --> RefreshUI
+    ClearAllNotifications --> RefreshUI
+    RefreshUI --> DisplayList
+```
+### 7.7. Activity Diagram - Chức năng tin tức
+```mermaid
+flowchart TD
+    Start([Vào News Page]) --> LoadNews[Tải tin tức]
+    LoadNews --> CheckCache{Cache còn hiệu lực?}
+    CheckCache -->|Có| DisplayCached[Hiển thị cache]
+    CheckCache -->|Không| FetchFromAPI[Tải từ API]
+    
+    FetchFromAPI --> FetchReddit[Reddit r/CryptoCurrency]
+    FetchReddit --> FetchCoinGecko[CoinGecko News]
+    FetchCoinGecko --> CacheNews[Cache 15 phút]
+    CacheNews --> DisplayNews[Hiển thị tin tức]
+    DisplayCached --> DisplayNews
+    
+    DisplayNews --> TabFilter{Chọn tab}
+    TabFilter -->|Market News| ShowCoinGecko[Hiển thị CoinGecko]
+    TabFilter -->|Social| ShowReddit[Hiển thị Reddit]
+    TabFilter -->|All| ShowAll[Hiển thị tất cả]
+    
+    ShowCoinGecko --> UserAction{Hành động?}
+    ShowReddit --> UserAction
+    ShowAll --> UserAction
+    
+    UserAction -->|Đọc chi tiết| OpenDetail[Mở News Detail]
+    UserAction -->|Share| ShareNews[Chia sẻ bài viết]
+    UserAction -->|Open browser| OpenBrowser[Mở link trong browser]
+    UserAction -->|Pull refresh| RefreshNews[Làm mới tin tức]
+    
+    OpenDetail --> ReadArticle[Đọc bài viết đầy đủ]
+    ShareNews --> End([Kết thúc])
+    OpenBrowser --> End
+    RefreshNews --> LoadNews
+    ReadArticle --> End
+```
+### 7.8. State Diagram - Vòng đời giao dịch
 
 ```mermaid
 stateDiagram-v2
@@ -611,7 +731,7 @@ stateDiagram-v2
     end note
 ```
 
-### 7.5. Sequence Diagram - Quy trình nạp tiền
+### 7.9. Sequence Diagram - Quy trình nạp tiền
 
 ```mermaid
 sequenceDiagram
@@ -666,7 +786,7 @@ sequenceDiagram
     end
 ```
 
-### 7.6. Sequence Diagram - Push Notification Flow
+### 7.10. Sequence Diagram - Push Notification Flow
 
 ```mermaid
 sequenceDiagram
