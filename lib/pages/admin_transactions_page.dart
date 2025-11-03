@@ -473,37 +473,127 @@ class _AdminTransactionsPageState extends State<AdminTransactionsPage> {
   }
 
   void _confirmDeleteTransaction(AppTransaction.Transaction transaction) {
+    String selectedAction = 'no_action';
+    final reasonController = TextEditingController();
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Xác nhận xóa'),
-        content: Text('Bạn có chắc muốn xóa giao dịch ${transaction.coinSymbol} này?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Hủy'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                await _adminService.deleteTransaction(transaction.id);
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Đã xóa giao dịch')),
-                );
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Lỗi: $e')),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Xác nhận xóa giao dịch'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Giao dịch: ${transaction.coinSymbol} - ${transaction.type.toUpperCase()}'),
+                Text('Số lượng: ${transaction.amount}'),
+                Text('Tổng giá trị: \$${transaction.total.toStringAsFixed(2)}'),
+                const SizedBox(height: 16),
+                const Text(
+                  'Chọn hành động:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                RadioListTile<String>(
+                  title: const Text('Không hoàn trả/trừ tiền'),
+                  subtitle: const Text('Chỉ xóa giao dịch'),
+                  value: 'no_action',
+                  groupValue: selectedAction,
+                  onChanged: (value) {
+                    setState(() {
+                      selectedAction = value!;
+                    });
+                  },
+                ),
+                RadioListTile<String>(
+                  title: const Text('Hoàn trả tiền'),
+                  subtitle: Text('Hoàn \$${transaction.total.toStringAsFixed(2)} vào tài khoản'),
+                  value: 'refund_money',
+                  groupValue: selectedAction,
+                  onChanged: (value) {
+                    setState(() {
+                      selectedAction = value!;
+                    });
+                  },
+                ),
+                RadioListTile<String>(
+                  title: const Text('Trừ coin'),
+                  subtitle: Text('Trừ ${transaction.amount} ${transaction.coinSymbol} khỏi tài khoản'),
+                  value: 'deduct_coin',
+                  groupValue: selectedAction,
+                  onChanged: (value) {
+                    setState(() {
+                      selectedAction = value!;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: reasonController,
+                  decoration: const InputDecoration(
+                    labelText: 'Lý do xóa giao dịch *',
+                    border: OutlineInputBorder(),
+                    hintText: 'Nhập lý do bắt buộc...',
+                  ),
+                  maxLines: 3,
+                ),
+              ],
             ),
-            child: const Text('Xóa'),
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Hủy'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (reasonController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Vui lòng nhập lý do xóa giao dịch')),
+                  );
+                  return;
+                }
+
+                try {
+                  await _adminService.deleteTransactionWithRefund(
+                    transactionId: transaction.id,
+                    transaction: transaction,
+                    action: selectedAction,
+                    reason: reasonController.text.trim(),
+                  );
+                  Navigator.pop(context);
+                  
+                  String actionText = '';
+                  switch (selectedAction) {
+                    case 'refund_money':
+                      actionText = ' và đã hoàn trả tiền';
+                      break;
+                    case 'deduct_coin':
+                      actionText = ' và đã trừ coin';
+                      break;
+                    case 'no_action':
+                      actionText = '';
+                      break;
+                  }
+                  
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Đã xóa giao dịch$actionText. Đã gửi thông báo cho người dùng.')),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Lỗi: $e')),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Xóa'),
+            ),
+          ],
+        ),
       ),
     );
   }

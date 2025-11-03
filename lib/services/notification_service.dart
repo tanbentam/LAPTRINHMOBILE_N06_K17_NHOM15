@@ -206,11 +206,12 @@ class NotificationService {
     required String title,
     required String body,
     Map<String, dynamic>? data,
+    String? userId, // Thêm tham số userId tùy chọn
   }) async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        await _db.collection('users').doc(user.uid).collection('notifications').add({
+      final targetUserId = userId ?? FirebaseAuth.instance.currentUser?.uid;
+      if (targetUserId != null) {
+        await _db.collection('users').doc(targetUserId).collection('notifications').add({
           'type': type,
           'title': title,
           'body': body,
@@ -537,5 +538,46 @@ class NotificationService {
   /// Hủy một notification cụ thể
   Future<void> cancel(int id) async {
     await _notifications.cancel(id);
+  }
+
+  /// Gửi thông báo cho user cụ thể (dành cho admin)
+  Future<void> sendNotificationToUser(
+    String userId,
+    String title,
+    String message, {
+    Map<String, dynamic>? data,
+  }) async {
+    try {
+      // Lấy FCM token của user
+      final userDoc = await _db.collection('users').doc(userId).get();
+      if (!userDoc.exists) {
+        print('User not found: $userId');
+        return;
+      }
+
+      final userData = userDoc.data()!;
+      final fcmToken = userData['fcmToken'] as String?;
+
+      if (fcmToken != null) {
+        // Gửi FCM message
+        // Tạm thời comment vì cần cấu hình server key
+        // await _sendFCMMessage(fcmToken, title, message, data);
+        print('Would send FCM to token: $fcmToken');
+      }
+
+      // Luôn lưu vào Firestore để user có thể thấy trong notification center
+      await _saveNotificationToFirestore(
+        type: data?['type'] ?? 'admin_message',
+        title: title,
+        body: message,
+        data: data ?? {},
+        userId: userId,
+      );
+
+      print('Notification sent to user: $userId');
+    } catch (e) {
+      print('Error sending notification to user: $e');
+      rethrow;
+    }
   }
 }

@@ -2,10 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
 import '../models/transaction.dart' as AppTransaction;
 import 'auth_service.dart';
+import 'notification_service.dart';
 
 class AdminService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final AuthService _authService = AuthService();
+  final NotificationService _notificationService = NotificationService();
 
   // Kiểm tra quyền admin của user hiện tại
   Future<bool> isCurrentUserAdmin() async {
@@ -154,7 +156,127 @@ class AdminService {
     }
   }
 
-  // Xóa giao dịch
+  // Xóa giao dịch với tùy chọn hoàn trả/trừ tiền
+  Future<void> deleteTransactionWithRefund({
+    required String transactionId,
+    required AppTransaction.Transaction transaction,
+    required String action, // 'refund_money', 'deduct_coin', 'no_action'
+    required String reason,
+  }) async {
+    try {
+      final batch = _firestore.batch();
+      
+      // 1. Xóa giao dịch
+      final transactionRef = _firestore.collection('transactions').doc(transactionId);
+      batch.delete(transactionRef);
+
+      // 2. Xử lý hoàn trả/trừ tiền
+      final userRef = _firestore.collection('users').doc(transaction.userId);
+      final userDoc = await userRef.get();
+      
+      if (userDoc.exists) {
+        final userData = UserModel.fromMap(userDoc.data()!);
+        UserModel updatedUser = userData;
+        String notificationMessage = '';
+
+        switch (action) {
+          case 'refund_money':
+            // Hoàn trả tiền
+            updatedUser = userData.copyWith(
+              balance: userData.balance + transaction.total,
+              updatedAt: DateTime.now(),
+            );
+            notificationMessage = 'Giao dịch ${transaction.coinSymbol.toUpperCase()} đã bị hủy. Số tiền \$${transaction.total.toStringAsFixed(2)} đã được hoàn trả vào tài khoản của bạn. Lý do: $reason';
+            break;
+            
+          case 'deduct_coin':
+            // Trừ coin khỏi holdings
+            final updatedHoldings = Map<String, double>.from(userData.holdings);
+            final currentAmount = updatedHoldings[transaction.coinId] ?? 0.0;
+            
+            if (currentAmount >= transaction.amount) {
+              updatedHoldings[transaction.coinId] = currentAmount - transaction.amount;
+              if (updatedHoldings[transaction.coinId] == 0) {
+                updatedHoldings.remove(transaction.coinId);
+              }
+            } else {
+              // Nếu không đủ coin để trừ, trừ tất cả và trừ thêm tiền
+              updatedHoldings.remove(transaction.coinId);
+              final remainingValue = (transaction.amount - currentAmount) * transaction.price;
+              updatedUser = userData.copyWith(
+                balance: userData.balance - remainingValue,
+                holdings: updatedHoldings,
+                updatedAt: DateTime.now(),
+              );
+              notificationMessage = 'Giao dịch ${transaction.coinSymbol.toUpperCase()} đã bị hủy. ${transaction.amount} ${transaction.coinSymbol.toUpperCase()} đã bị trừ khỏi tài khoản (bao gồm cả số dư). Lý do: $reason';
+              break;
+            }
+            
+            updatedUser = userData.copyWith(
+              holdings: updatedHoldings,
+              updatedAt: DateTime.now(),
+            );
+            notificationMessage = 'Giao dịch ${transaction.coinSymbol.toUpperCase()} đã bị hủy. ${transaction.amount} ${transaction.coinSymbol.toUpperCase()} đã bị trừ khỏi tài khoản. Lý do: $reason';
+            break;
+            
+          case 'no_action':
+            notificationMessage = 'Giao dịch ${transaction.coinSymbol.toUpperCase()} đã bị hủy. Lý do: $reason';
+            break;
+        }
+
+        // 3. Cập nhật user data
+        if (action != 'no_action') {
+          batch.update(userRef, updatedUser.toMap());
+        }
+
+        // 4. Tạo thông báo trong Firestore
+        final notificationRef = _firestore.collection('notifications').doc();
+        final notification = {
+          'id': notificationRef.id,
+          'userId': transaction.userId,
+          'title': 'Giao dịch bị hủy',
+          'message': notificationMessage,
+          'type': 'transaction_cancelled',
+          'isRead': false,
+          'timestamp': DateTime.now().toIso8601String(),
+          'data': {
+            'transactionId': transactionId,
+            'coinSymbol': transaction.coinSymbol,
+            'action': action,
+            'reason': reason,
+            'amount': transaction.amount,
+            'total': transaction.total,
+          },
+        };
+        batch.set(notificationRef, notification);
+
+        // 5. Commit batch
+        await batch.commit();
+
+        // 6. Gửi push notification
+        try {
+          await _notificationService.sendNotificationToUser(
+            transaction.userId,
+            'Giao dịch bị hủy',
+            notificationMessage,
+            data: {
+              'type': 'transaction_cancelled',
+              'transactionId': transactionId,
+              'action': action,
+            },
+          );
+        } catch (e) {
+          print('Error sending push notification: $e');
+          // Không throw error vì thông báo đã được lưu trong Firestore
+        }
+      }
+    } catch (e) {
+      print('Error deleting transaction with refund: $e');
+      rethrow;
+    }
+  }
+
+  // Giữ phương thức deleteTransaction cũ cho compatibility
   Future<void> deleteTransaction(String transactionId) async {
     try {
       await _firestore.collection('transactions').doc(transactionId).delete();

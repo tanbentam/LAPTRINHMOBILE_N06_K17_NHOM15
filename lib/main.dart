@@ -8,7 +8,7 @@ import 'pages/market_page.dart';
 import 'pages/trade_page.dart';
 import 'pages/assets_page.dart';
 import 'pages/news_page.dart';
-import 'widgets/admin_button.dart';
+import 'pages/admin_main_dashboard.dart';
 import 'services/auth_service.dart';
 import 'services/firestore_service.dart';
 import 'services/coingecko_service.dart';
@@ -95,12 +95,63 @@ class AuthWrapper extends StatelessWidget {
         }
         
         if (snapshot.hasData) {
-          return const MainScreen();
+          return const UserRoleChecker();
         }
         
         return const LoginPage();
       },
     );
+  }
+}
+
+// Widget để kiểm tra role và điều hướng
+class UserRoleChecker extends StatefulWidget {
+  const UserRoleChecker({super.key});
+
+  @override
+  State<UserRoleChecker> createState() => _UserRoleCheckerState();
+}
+
+class _UserRoleCheckerState extends State<UserRoleChecker> {
+  final AdminService _adminService = AdminService();
+  bool _isLoading = true;
+  bool _isAdmin = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkUserRole();
+  }
+
+  Future<void> _checkUserRole() async {
+    try {
+      final isAdmin = await _adminService.isCurrentUserAdmin();
+      setState(() {
+        _isAdmin = isAdmin;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    // Nếu là admin, hiển thị dashboard admin
+    if (_isAdmin) {
+      return const AdminMainDashboard();
+    }
+
+    // Nếu là user thường, hiển thị app chính
+    return const MainScreen();
   }
 }
 
@@ -132,7 +183,6 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_selectedIndex],
-      floatingActionButton: const AdminButton(),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         type: BottomNavigationBarType.fixed,
