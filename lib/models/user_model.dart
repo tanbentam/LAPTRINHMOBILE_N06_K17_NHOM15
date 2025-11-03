@@ -8,6 +8,8 @@ class UserModel {
   final List<String> favoriteCoins;
   final List<String> watchlist; // Danh sách theo dõi
   final String? password; // Thêm trường password
+  final String role; // Thêm trường role (user, admin)
+  final bool isActive; // Trạng thái hoạt động của tài khoản
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -21,6 +23,8 @@ class UserModel {
     this.favoriteCoins = const [],
     this.watchlist = const [],
     this.password, // Thêm parameter password
+    this.role = 'user', // Mặc định là user
+    this.isActive = true, // Mặc định là active
     required this.createdAt,
     required this.updatedAt,
   });
@@ -36,6 +40,8 @@ class UserModel {
       favoriteCoins: List<String>.from(map['favoriteCoins'] ?? []),
       watchlist: List<String>.from(map['watchlist'] ?? []),
       password: map['password'], // Đọc password từ map
+      role: map['role'] ?? 'user', // Đọc role từ map
+      isActive: map['isActive'] ?? true, // Đọc isActive từ map
       createdAt: DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
       updatedAt: DateTime.parse(map['updatedAt'] ?? DateTime.now().toIso8601String()),
     );
@@ -52,6 +58,8 @@ class UserModel {
       'favoriteCoins': favoriteCoins,
       'watchlist': watchlist,
       'password': password, // Thêm password vào map để lưu Firebase
+      'role': role, // Thêm role vào map
+      'isActive': isActive, // Thêm isActive vào map
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -67,6 +75,8 @@ class UserModel {
     List<String>? favoriteCoins,
     List<String>? watchlist,
     String? password,
+    String? role,
+    bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -80,8 +90,13 @@ class UserModel {
       favoriteCoins: favoriteCoins ?? this.favoriteCoins,
       watchlist: watchlist ?? this.watchlist,
       password: password ?? this.password,
+      role: role ?? this.role,
+      isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
+
+  // Phương thức kiểm tra quyền admin
+  bool get isAdmin => role == 'admin';
 }

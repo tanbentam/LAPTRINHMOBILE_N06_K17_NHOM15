@@ -47,6 +47,10 @@ class Transaction {
     );
   }
 
+  factory Transaction.fromMap(Map<String, dynamic> map) {
+    return Transaction.fromJson(map);
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -63,5 +67,9 @@ class Transaction {
       'autoSellEnabled': autoSellEnabled,
       'notes': notes,
     };
+  }
+
+  Map<String, dynamic> toMap() {
+    return toJson();
   }
 }

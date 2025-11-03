@@ -8,12 +8,14 @@ import 'pages/market_page.dart';
 import 'pages/trade_page.dart';
 import 'pages/assets_page.dart';
 import 'pages/news_page.dart';
+import 'widgets/admin_button.dart';
 import 'services/auth_service.dart';
 import 'services/firestore_service.dart';
 import 'services/coingecko_service.dart';
 import 'services/notification_service.dart';
 import 'services/portfolio_service.dart';
 import 'services/alert_service.dart';
+import 'services/admin_service.dart';
 
 // 🔔 Background message handler (phải là top-level function)
 @pragma('vm:entry-point')
@@ -60,6 +62,7 @@ class MyApp extends StatelessWidget {
         Provider<NotificationService>(create: (_) => NotificationService()),
         Provider<PortfolioService>(create: (_) => PortfolioService()),
         Provider<AlertService>(create: (_) => AlertService()),
+        Provider<AdminService>(create: (_) => AdminService()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -129,6 +132,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_selectedIndex],
+      floatingActionButton: const AdminButton(),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         type: BottomNavigationBarType.fixed,

@@ -6,6 +6,7 @@ import 'notification_settings_page.dart';
 import '../pages/debug_page.dart';
 import '../pages/simulate_balance_page.dart';
 import '../pages/notification_demo_page.dart';
+import '../pages/create_first_admin_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -83,6 +84,18 @@ class SettingsPage extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const DebugPage()),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.admin_panel_settings, color: Colors.red),
+            title: const Text('Tạo Admin đầu tiên'),
+            subtitle: const Text('Cấp quyền admin cho tài khoản đầu tiên'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CreateFirstAdminPage()),
               );
             },
           ),
