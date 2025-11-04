@@ -89,19 +89,29 @@ class _AdminDashboardHomeState extends State<AdminDashboardHome> {
     _loadData();
   }
 
+  @override
+  void dispose() {
+    // Clean up any resources if needed
+    super.dispose();
+  }
+
   Future<void> _loadData() async {
     try {
       final stats = await _adminService.getAdminStats();
       final user = await _adminService.getCurrentUser();
-      setState(() {
-        _stats = stats;
-        _currentUser = user;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _stats = stats;
+          _currentUser = user;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
