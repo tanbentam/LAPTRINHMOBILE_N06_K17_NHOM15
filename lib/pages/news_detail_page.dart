@@ -281,6 +281,8 @@ class NewsDetailPage extends StatelessWidget {
         return Colors.orange;
       case NewsSource.coinGecko:
         return Colors.green;
+      case NewsSource.cryptoCompare:
+        return Colors.blue;
     }
   }
 

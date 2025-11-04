@@ -54,6 +54,21 @@ class NewsArticle {
     );
   }
 
+  factory NewsArticle.fromCryptoCompareJson(Map<String, dynamic> json) {
+    return NewsArticle(
+      id: json['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      title: json['title'] ?? 'No title',
+      summary: json['body'] ?? '',
+      timestamp: DateTime.fromMillisecondsSinceEpoch(
+        (json['published_on'] as num? ?? 0).toInt() * 1000,
+      ),
+      thumbnailUrl: json['imageurl'],
+      source: NewsSource.cryptoCompare,
+      url: json['url'] ?? json['guid'] ?? '',
+      author: json['source'],
+    );
+  }
+
   static String _extractSummary(String text) {
     if (text.isEmpty) return 'Click to read more...';
     
@@ -105,6 +120,7 @@ class NewsArticle {
 enum NewsSource {
   reddit,
   coinGecko,
+  cryptoCompare,
 }
 
 extension NewsSourceExtension on NewsSource {
@@ -114,6 +130,8 @@ extension NewsSourceExtension on NewsSource {
         return 'Reddit';
       case NewsSource.coinGecko:
         return 'CoinGecko';
+      case NewsSource.cryptoCompare:
+        return 'CryptoCompare';
     }
   }
 
@@ -123,6 +141,8 @@ extension NewsSourceExtension on NewsSource {
         return '🔴';
       case NewsSource.coinGecko:
         return '🦎';
+      case NewsSource.cryptoCompare:
+        return '📰';
     }
   }
 }

@@ -434,6 +434,8 @@ class _NewsPageState extends State<NewsPage> with SingleTickerProviderStateMixin
         return Colors.orange;
       case NewsSource.coinGecko:
         return Colors.green;
+      case NewsSource.cryptoCompare:
+        return Colors.blue;
     }
   }
 }

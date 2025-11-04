@@ -4,13 +4,13 @@ import '../models/news_article.dart';
 
 class NewsService {
   static const String _redditBaseUrl = 'https://www.reddit.com';
-  static const String _coinGeckoBaseUrl = 'https://api.coingecko.com/api/v3';
+  static const String _cryptoCompareBaseUrl = 'https://min-api.cryptocompare.com/data/v2';
   
   // Cache để giảm số lần gọi API
   static DateTime? _lastRedditFetch;
   static List<NewsArticle>? _cachedRedditNews;
-  static DateTime? _lastCoinGeckoFetch;
-  static List<NewsArticle>? _cachedCoinGeckoNews;
+  static DateTime? _lastCryptoCompareFetch;
+  static List<NewsArticle>? _cachedCryptoCompareNews;
   static const Duration _cacheDuration = Duration(minutes: 5);
 
   /// Lấy tin tức từ Reddit r/CryptoCurrency
@@ -78,22 +78,22 @@ class NewsService {
     }
   }
 
-  /// Lấy tin tức từ CoinGecko Status Updates
-  static Future<List<NewsArticle>> fetchCoinGeckoNews({
+  /// Lấy tin tức từ CryptoCompare
+  static Future<List<NewsArticle>> fetchCryptoCompareNews({
     int limit = 20,
     bool forceRefresh = false,
   }) async {
     // Kiểm tra cache
     if (!forceRefresh && 
-        _cachedCoinGeckoNews != null && 
-        _lastCoinGeckoFetch != null &&
-        DateTime.now().difference(_lastCoinGeckoFetch!) < _cacheDuration) {
-      return _cachedCoinGeckoNews!;
+        _cachedCryptoCompareNews != null && 
+        _lastCryptoCompareFetch != null &&
+        DateTime.now().difference(_lastCryptoCompareFetch!) < _cacheDuration) {
+      return _cachedCryptoCompareNews!;
     }
 
     try {
       final url = Uri.parse(
-        '$_coinGeckoBaseUrl/status_updates?per_page=$limit',
+        '$_cryptoCompareBaseUrl/news/?lang=EN&feeds=cryptocompare',
       );
 
       final response = await http.get(url).timeout(
@@ -103,14 +103,15 @@ class NewsService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final updates = data['status_updates'] as List;
+        final newsData = data['Data'] as List;
 
-        final articles = updates
-            .map((update) {
+        final articles = newsData
+            .take(limit)
+            .map((article) {
               try {
-                return NewsArticle.fromCoinGeckoJson(update);
+                return NewsArticle.fromCryptoCompareJson(article);
               } catch (e) {
-                print('Error parsing CoinGecko update: $e');
+                print('Error parsing CryptoCompare article: $e');
                 return null;
               }
             })
@@ -118,20 +119,20 @@ class NewsService {
             .toList();
 
         // Lưu vào cache
-        _cachedCoinGeckoNews = articles;
-        _lastCoinGeckoFetch = DateTime.now();
+        _cachedCryptoCompareNews = articles;
+        _lastCryptoCompareFetch = DateTime.now();
 
         return articles;
       } else if (response.statusCode == 429) {
         throw Exception('Too many requests. Please try again later.');
       } else {
-        throw Exception('Failed to load CoinGecko news: ${response.statusCode}');
+        throw Exception('Failed to load CryptoCompare news: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching CoinGecko news: $e');
+      print('Error fetching CryptoCompare news: $e');
       // Trả về cache cũ nếu có
-      if (_cachedCoinGeckoNews != null) {
-        return _cachedCoinGeckoNews!;
+      if (_cachedCryptoCompareNews != null) {
+        return _cachedCryptoCompareNews!;
       }
       rethrow;
     }
@@ -144,7 +145,7 @@ class NewsService {
     try {
       final results = await Future.wait([
         fetchRedditNews(forceRefresh: forceRefresh),
-        fetchCoinGeckoNews(forceRefresh: forceRefresh),
+        fetchCryptoCompareNews(forceRefresh: forceRefresh),
       ]);
 
       final allNews = [...results[0], ...results[1]];
@@ -166,7 +167,7 @@ class NewsService {
   }) async {
     switch (type) {
       case NewsType.market:
-        return fetchCoinGeckoNews(forceRefresh: forceRefresh);
+        return fetchCryptoCompareNews(forceRefresh: forceRefresh);
       case NewsType.social:
         return fetchRedditNews(forceRefresh: forceRefresh);
     }
@@ -176,8 +177,8 @@ class NewsService {
   static void clearCache() {
     _cachedRedditNews = null;
     _lastRedditFetch = null;
-    _cachedCoinGeckoNews = null;
-    _lastCoinGeckoFetch = null;
+    _cachedCryptoCompareNews = null;
+    _lastCryptoCompareFetch = null;
   }
 }
 

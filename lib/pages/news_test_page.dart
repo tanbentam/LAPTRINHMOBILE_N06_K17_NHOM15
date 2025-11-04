@@ -41,16 +41,16 @@ class _NewsTestPageState extends State<NewsTestPage> {
     }
   }
 
-  Future<void> _testCoinGecko() async {
+  Future<void> _testCryptoCompare() async {
     setState(() {
       _isLoading = true;
-      _status = 'Đang test CoinGecko API...';
+      _status = 'Đang test CryptoCompare API...';
       _error = null;
       _results = [];
     });
 
     try {
-      final news = await NewsService.fetchCoinGeckoNews(forceRefresh: true);
+      final news = await NewsService.fetchCryptoCompareNews(forceRefresh: true);
       setState(() {
         _status = '✅ Thành công! Nhận được ${news.length} bài viết';
         _results = news;
@@ -169,12 +169,12 @@ class _NewsTestPageState extends State<NewsTestPage> {
             const SizedBox(height: 12),
             
             ElevatedButton.icon(
-              onPressed: _isLoading ? null : _testCoinGecko,
-              icon: const Text('🦎', style: TextStyle(fontSize: 20)),
-              label: const Text('Test CoinGecko API'),
+              onPressed: _isLoading ? null : _testCryptoCompare,
+              icon: const Text('📰', style: TextStyle(fontSize: 20)),
+              label: const Text('Test CryptoCompare API'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.all(16),
-                backgroundColor: Colors.green,
+                backgroundColor: Colors.blue,
               ),
             ),
             
