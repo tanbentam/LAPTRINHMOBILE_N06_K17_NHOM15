@@ -12,6 +12,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   bool isLogin = true;
   bool isLoading = false;
+  bool isAdminRegistration = false; // Checkbox for admin registration
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -27,6 +28,7 @@ class _LoginPageState extends State<LoginPage> {
   void _toggleForm() {
     setState(() {
       isLogin = !isLogin;
+      isAdminRegistration = false; // Reset admin checkbox when switching forms
     });
   }
 
@@ -51,7 +53,21 @@ class _LoginPageState extends State<LoginPage> {
         await authService.signUpWithEmailPassword(
           _emailController.text.trim(),
           _passwordController.text.trim(),
+          isAdmin: isAdminRegistration, // Pass admin flag
         );
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                isAdminRegistration 
+                  ? 'Đăng ký tài khoản Admin thành công!' 
+                  : 'Đăng ký thành công!',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       }
       
       // Navigation is handled by AuthWrapper in main.dart
@@ -157,6 +173,36 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 15),
+                  // Admin registration checkbox (only show in signup mode)
+                  if (!isLogin)
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: CheckboxListTile(
+                        value: isAdminRegistration,
+                        onChanged: (value) {
+                          setState(() {
+                            isAdminRegistration = value ?? false;
+                          });
+                        },
+                        title: const Text(
+                          'Đăng ký tài khoản Admin',
+                          style: TextStyle(color: Colors.white, fontSize: 14),
+                        ),
+                        subtitle: const Text(
+                          'Tích vào đây nếu bạn muốn tạo tài khoản quản trị viên',
+                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                        ),
+                        activeColor: Colors.amber,
+                        checkColor: Colors.black,
+                        tileColor: Colors.transparent,
+                        controlAffinity: ListTileControlAffinity.leading,
+                      ),
+                    ),
                   const SizedBox(height: 30),
                   SizedBox(
                     width: double.infinity,

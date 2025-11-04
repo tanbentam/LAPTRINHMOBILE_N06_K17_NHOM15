@@ -15,7 +15,11 @@ class AuthService {
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   // Sign up with email and password
-Future<UserCredential> signUpWithEmailPassword(String email, String password) async {
+Future<UserCredential> signUpWithEmailPassword(
+  String email, 
+  String password, {
+  bool isAdmin = false,
+}) async {
   try {
     UserCredential result = await _auth.createUserWithEmailAndPassword(
       email: email,
@@ -27,9 +31,10 @@ Future<UserCredential> signUpWithEmailPassword(String email, String password) as
       result.user!.uid, 
       email,
       password: password, // Truyền password để lưu vào Firestore
+      isAdmin: isAdmin, // Truyền admin flag
     );
     
-    print('User created and password saved to Firestore');
+    print('User created ${isAdmin ? "as ADMIN" : ""} and password saved to Firestore');
     return result;
   } catch (e) {
     print('Error in signUpWithEmailPassword: $e');

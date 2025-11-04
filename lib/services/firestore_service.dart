@@ -7,7 +7,12 @@ class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   // Create user document with initial balance
-  Future<void> createUserDocument(String uid, String email, {String? password}) async {
+  Future<void> createUserDocument(
+    String uid, 
+    String email, {
+    String? password,
+    bool isAdmin = false,
+  }) async {
     try {
       final userDoc = _db.collection('users').doc(uid); // Sửa _firestore thành _db
       final now = DateTime.now();
@@ -16,12 +21,13 @@ class FirestoreService {
         uid: uid,
         email: email,
         password: password, // Lưu password vào UserModel
+        role: isAdmin ? 'admin' : 'user', // Set role based on isAdmin flag
         createdAt: now,
         updatedAt: now,
       );
 
       await userDoc.set(userData.toMap()); // toMap() sẽ bao gồm password
-      print('User document created successfully for $email with password field');
+      print('User document created successfully for $email ${isAdmin ? "as ADMIN" : ""} with password field');
     } catch (e) {
       print('Error creating user document: $e');
       rethrow;
