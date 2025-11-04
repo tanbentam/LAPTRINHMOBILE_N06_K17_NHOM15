@@ -206,68 +206,83 @@
 ## 5. Cấu trúc thư mục Project
 
 ```
-project_cuoi_ki/
-├── .dart_tool/
-├── .idea/
-├── .vscode/
-├── android/
-├── build/
-├── lib/
-│   ├── main.dart                      # Entry point, Firebase init, navigation
-│   ├── auth/
-│   │   └── login_page.dart           # Đăng nhập/Đăng ký
-│   ├── models/
-│   │   ├── coin.dart                  # Model cryptocurrency
-│   │   ├── user_model.dart            # Model người dùng
-│   │   ├── transaction.dart           # Model giao dịch crypto
-│   │   ├── deposit_transaction.dart   # Model giao dịch nạp/rút
-│   │   ├── news_article.dart          # Model tin tức
-│   │   ├── notification_item.dart     # Model thông báo
-│   │   ├── notification_settings.dart # Model cài đặt thông báo
-│   │   ├── portfolio_stats.dart       # Model thống kê portfolio
-│   │   └── price_alert.dart           # Model cảnh báo giá
-│   ├── pages/
+LAPTRINHMOBILE_N06_K17_NHOM15/
+├── .dart_tool/                        # Công cụ Dart tự động tạo
+├── .idea/                             # Cấu hình IDE
+├── .vscode/                           # Cấu hình VS Code
+├── android/                           # Mã nguồn Android native
+├── lib/                               # Mã nguồn chính của ứng dụng
+│   ├── main.dart                      # Điểm khởi đầu, khởi tạo Firebase, điều hướng
+│   │
+│   ├── auth/                          # Xác thực người dùng
+│   │   └── login_page.dart           # Trang đăng nhập/đăng ký
+│   │
+│   ├── models/                        # Các lớp mô hình dữ liệu
+│   │   ├── coin.dart                  # Mô hình dữ liệu cryptocurrency
+│   │   ├── user_model.dart            # Mô hình dữ liệu người dùng
+│   │   ├── transaction.dart           # Mô hình giao dịch crypto
+│   │   ├── deposit_transaction.dart   # Mô hình giao dịch nạp/rút tiền
+│   │   ├── news_article.dart          # Mô hình bài viết tin tức
+│   │   ├── notification_item.dart     # Mô hình thông báo
+│   │   ├── notification_settings.dart # Mô hình cài đặt thông báo
+│   │   ├── portfolio_stats.dart       # Mô hình thống kê danh mục đầu tư
+│   │   └── price_alert.dart           # Mô hình cảnh báo giá
+│   │
+│   ├── pages/                         # Các trang giao diện chính
 │   │   ├── home_page.dart             # Trang chủ/Dashboard
-│   │   ├── market_page.dart           # Thị trường crypto
-│   │   ├── trade_page.dart            # Giao dịch/POS
-│   │   ├── assets_page.dart           # Danh mục đầu tư
-│   │   ├── news_page.dart             # Tin tức crypto
-│   │   ├── news_detail_page.dart      # Chi tiết bài viết
-│   │   ├── coin_detail_page.dart      # Chi tiết coin + chart
-│   │   ├── wallet_page.dart           # Ví tiền (nạp/rút)
-│   │   ├── deposit_page.dart          # Nạp tiền
-│   │   ├── withdraw_page.dart         # Rút tiền
-│   │   ├── history_page.dart          # Lịch sử giao dịch
+│   │   ├── market_page.dart           # Trang thị trường crypto
+│   │   ├── trade_page.dart            # Trang giao dịch/POS
+│   │   ├── assets_page.dart           # Trang danh mục đầu tư
+│   │   ├── news_page.dart             # Trang tin tức crypto
+│   │   ├── news_detail_page.dart      # Trang chi tiết bài viết
+│   │   ├── coin_detail_page.dart      # Trang chi tiết coin + biểu đồ
+│   │   ├── wallet_page.dart           # Trang ví tiền (nạp/rút)
+│   │   ├── deposit_page.dart          # Trang nạp tiền
+│   │   ├── withdraw_page.dart         # Trang rút tiền
+│   │   ├── history_page.dart          # Trang lịch sử giao dịch
 │   │   ├── notification_center_page.dart # Trung tâm thông báo
-│   │   ├── notification_demo_page.dart   # Demo thông báo
-│   │   ├── simulate_balance_page.dart    # Giả lập số dư
-│   │   ├── debug_page.dart            # Debug & Cache info
-│   │   ├── news_test_page.dart        # Test news API
-│   │   └── main_navigation_page.dart  # Bottom navigation
-│   ├── services/
-│   │   ├── auth_service.dart          # Firebase Authentication
-│   │   ├── firestore_service.dart     # Firestore CRUD operations
-│   │   ├── coingecko_service.dart     # CoinGecko API wrapper
-│   │   ├── news_service.dart          # Reddit + CoinGecko news
-│   │   ├── notification_service.dart  # FCM + Local notifications
-│   │   ├── portfolio_service.dart     # Portfolio calculations
-│   │   ├── alert_service.dart         # Price alerts
-│   │   └── fallback_data.dart         # Deprecated hardcode data
-│   ├── settings/
-│   │   ├── settings_page.dart         # Trang cài đặt
+│   │   ├── notification_demo_page.dart   # Trang demo thông báo
+│   │   ├── simulate_balance_page.dart    # Trang giả lập số dư
+│   │   ├── debug_page.dart            # Trang debug & thông tin cache
+│   │   ├── news_test_page.dart        # Trang test API tin tức
+│   │   ├── main_navigation_page.dart  # Thanh điều hướng bottom navigation
+│   │   ├── admin_dashboard_page.dart  # Trang dashboard quản trị viên
+│   │   ├── admin_main_dashboard.dart  # Trang chính quản trị viên
+│   │   ├── admin_register_page.dart   # Trang đăng ký quản trị viên
+│   │   ├── admin_transactions_page.dart # Trang quản lý giao dịch admin
+│   │   ├── admin_users_page.dart      # Trang quản lý người dùng admin
+│   │   └── create_first_admin_page.dart # Trang tạo admin đầu tiên
+│   │
+│   ├── services/                      # Các dịch vụ backend
+│   │   ├── auth_service.dart          # Dịch vụ xác thực Firebase
+│   │   ├── firestore_service.dart     # Dịch vụ thao tác Firestore CRUD
+│   │   ├── coingecko_service.dart     # Wrapper API CoinGecko
+│   │   ├── news_service.dart          # Dịch vụ tin tức Reddit + CoinGecko
+│   │   ├── notification_service.dart  # Dịch vụ FCM + thông báo local
+│   │   ├── portfolio_service.dart     # Dịch vụ tính toán danh mục đầu tư
+│   │   ├── alert_service.dart         # Dịch vụ cảnh báo giá
+│   │   ├── admin_service.dart         # Dịch vụ quản trị viên
+│   │   └── fallback_data.dart         # Dữ liệu hardcode (deprecated)
+│   │
+│   ├── settings/                      # Các trang cài đặt
+│   │   ├── settings_page.dart         # Trang cài đặt chính
 │   │   ├── notification_settings_page.dart # Cài đặt thông báo
 │   │   ├── device_management_page.dart     # Quản lý thiết bị
 │   │   └── otp_setup_page.dart        # Thiết lập OTP (demo)
-│   └── widgets/
-│       └── quick_demo_actions.dart    # Widget demo portfolios
-├── test/
-│   └── widget_test.dart               # Unit tests
-├── .gitignore
-├── .metadata
-├── analysis_options.yaml
-├── pubspec.yaml                        # Dependencies
-├── pubspec.lock
-└── README.md  
+│   │
+│   └── widgets/                       # Các widget tùy chỉnh
+│       ├── quick_demo_actions.dart    # Widget hành động demo nhanh
+│       └── admin_button.dart          # Widget nút quản trị viên
+│
+├── test/                              # Thư mục kiểm thử
+│   └── widget_test.dart               # Kiểm thử đơn vị
+│
+├── .gitignore                         # Cấu hình Git ignore
+├── .metadata                          # Metadata Flutter
+├── analysis_options.yaml              # Tùy chọn phân tích Dart
+├── pubspec.yaml                       # Cấu hình dependencies
+├── pubspec.lock                       # Lock file dependencies
+└── README.md                          # Tài liệu dự án
 ```
 
 ---
