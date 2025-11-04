@@ -75,6 +75,31 @@ class AdminService {
         'isActive': isActive,
         'updatedAt': DateTime.now().toIso8601String(),
       });
+
+      // Gửi thông báo cho người dùng
+      if (!isActive) {
+        // Tài khoản bị khóa
+        await _notificationService.sendNotificationToUser(
+          userId,
+          '🔒 Tài khoản đã bị khóa',
+          'Tài khoản của bạn đã bị khóa bởi quản trị viên. Vui lòng liên hệ hỗ trợ để biết thêm chi tiết.',
+          data: {
+            'type': 'account_locked',
+            'timestamp': DateTime.now().toIso8601String(),
+          },
+        );
+      } else {
+        // Tài khoản được mở khóa
+        await _notificationService.sendNotificationToUser(
+          userId,
+          '✅ Tài khoản đã được mở khóa',
+          'Tài khoản của bạn đã được kích hoạt lại. Bạn có thể đăng nhập và sử dụng bình thường.',
+          data: {
+            'type': 'account_unlocked',
+            'timestamp': DateTime.now().toIso8601String(),
+          },
+        );
+      }
     } catch (e) {
       print('Error toggling user status: $e');
       rethrow;

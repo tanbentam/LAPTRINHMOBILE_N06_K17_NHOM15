@@ -210,19 +210,95 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
   }
 
   Future<void> _toggleUserStatus(UserModel user) async {
+    // Hiển thị dialog xác nhận
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          user.isActive ? 'Xác nhận khóa tài khoản' : 'Xác nhận mở khóa tài khoản',
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Email: ${user.email}'),
+            const SizedBox(height: 8),
+            Text(
+              user.isActive 
+                ? '⚠️ Khi khóa tài khoản:\n'
+                  '• Người dùng sẽ bị đăng xuất ngay lập tức\n'
+                  '• Không thể đăng nhập lại cho đến khi được mở khóa\n'
+                  '• Tất cả hoạt động sẽ bị tạm dừng'
+                : '✅ Khi mở khóa tài khoản:\n'
+                  '• Người dùng có thể đăng nhập trở lại\n'
+                  '• Khôi phục toàn bộ quyền truy cập',
+              style: TextStyle(
+                fontSize: 13,
+                color: user.isActive ? Colors.red[700] : Colors.green[700],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Bạn có chắc chắn muốn ${user.isActive ? "khóa" : "mở khóa"} tài khoản này?',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: user.isActive ? Colors.red : Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(user.isActive ? 'Khóa tài khoản' : 'Mở khóa'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
     try {
       await _adminService.toggleUserStatus(user.uid, !user.isActive);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            user.isActive ? 'Đã khóa tài khoản' : 'Đã mở khóa tài khoản',
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(
+                  user.isActive ? Icons.lock : Icons.lock_open,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    user.isActive 
+                      ? '✅ Đã khóa tài khoản. Người dùng sẽ bị đăng xuất ngay lập tức.' 
+                      : '✅ Đã mở khóa tài khoản. Người dùng có thể đăng nhập trở lại.',
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: user.isActive ? Colors.red : Colors.green,
+            duration: const Duration(seconds: 4),
           ),
-        ),
-      );
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Lỗi: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

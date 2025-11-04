@@ -9,6 +9,7 @@ import 'pages/trade_page.dart';
 import 'pages/assets_page.dart';
 import 'pages/news_page.dart';
 import 'pages/admin_main_dashboard.dart';
+import 'models/user_model.dart';
 import 'services/auth_service.dart';
 import 'services/firestore_service.dart';
 import 'services/coingecko_service.dart';
@@ -114,26 +115,100 @@ class UserRoleChecker extends StatefulWidget {
 
 class _UserRoleCheckerState extends State<UserRoleChecker> {
   final AdminService _adminService = AdminService();
+  final AuthService _authService = AuthService();
+  final FirestoreService _firestoreService = FirestoreService();
   bool _isLoading = true;
   bool _isAdmin = false;
+  bool _isActive = true;
+  
+  // Subscription để theo dõi thay đổi
+  Stream<UserModel?>? _userStream;
 
   @override
   void initState() {
     super.initState();
     _checkUserRole();
+    _listenToUserChanges();
+  }
+
+  void _listenToUserChanges() {
+    final userId = _authService.currentUserId;
+    if (userId != null) {
+      _userStream = _firestoreService.streamUserData(userId);
+      _userStream!.listen((user) {
+        if (user != null && !user.isActive && mounted) {
+          // Tài khoản bị khóa trong khi đang sử dụng
+          _showAccountLockedDialog();
+        }
+      });
+    }
+  }
+
+  void _showAccountLockedDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.lock, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Tài khoản bị khóa'),
+          ],
+        ),
+        content: const Text(
+          'Tài khoản của bạn đã bị khóa bởi quản trị viên.\n'
+          'Vui lòng liên hệ hỗ trợ để biết thêm chi tiết.',
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              Navigator.pop(context);
+              await _authService.signOut();
+            },
+            child: const Text('Đăng xuất'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _checkUserRole() async {
     try {
-      final isAdmin = await _adminService.isCurrentUserAdmin();
-      setState(() {
-        _isAdmin = isAdmin;
-        _isLoading = false;
-      });
+      final user = await _adminService.getCurrentUser();
+      
+      if (user == null) {
+        // Nếu không lấy được thông tin user, đăng xuất
+        await _authService.signOut();
+        return;
+      }
+
+      // Kiểm tra tài khoản có bị khóa không
+      if (!user.isActive) {
+        if (mounted) {
+          // Hiển thị thông báo tài khoản bị khóa
+          _showAccountLockedDialog();
+        }
+        return;
+      }
+
+      if (mounted) {
+        setState(() {
+          _isAdmin = user.isAdmin;
+          _isActive = user.isActive;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -142,6 +217,16 @@ class _UserRoleCheckerState extends State<UserRoleChecker> {
     if (_isLoading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    // Nếu tài khoản không hoạt động, hiển thị màn hình trống
+    // (Dialog sẽ hiển thị và đăng xuất)
+    if (!_isActive) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
       );
     }
 
